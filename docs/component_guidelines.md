@@ -4,7 +4,7 @@ As small and generic as possible
 
 - To avoid monolithic code, modules create as few resources as possible and strive to be as generic as possible.
 - Modules must not specify a remote state provider, this is handled by Cloudicorn
-- Modules use input variables 
+- Modules use input variables for all 
 - Module variables expose the attributes of their resources as inputs, with defaults that match most cases. 
 
 # Coding conventions
@@ -29,23 +29,15 @@ resource "azurerm_virtual_network" "this" {
 
 ### Handling Remote states
 
-By design, terraform modules are tied to a specific remote state backend type.  All modules in this repo use the `local` backend type.  This has the disadvantage of requiring the use of third party filesystems to share remote states, however, this prevents having to manually create an azure account and container just to store the remote states.
+Terraform provides a `backend` mechanism to store remote states and a `remote_state` data type to fetch them. By design, these are tied to a specific remote state backend type, meaning that the module is strongly coupled to a specific remote state storage strategy.
 
-Remote state inputs are prefixed with `rspath_` e.g.
+To allow modules to be as generic as possible, cloudicorn handles remote states using a global project level setting.  Likewise, in order to inject values from one resource to another, cloudicorn handles this on the component level with a `component_inputs` block. 
 
-```
-# variables.tf
-variable "rspath_resource_group" {
-  description = "Remote state key of resource group to deploy resources in."
-}
+
 
 # main.tf
-data "terraform_remote_state" "resource_group" {
-  backend = "local"
-  config = {
-    path = "${var.rspath_resource_group}/terraform.tfstate"
-  }
-}
+
+```
 
 resource "azurerm_network_security_group" "this" {
   name                = var.name
