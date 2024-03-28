@@ -23,5 +23,4 @@ There's more to it than that, but that's the idea.  Thanks for making it this fa
 - [Getting Started](docs/)
 - [Installation](docs/installation.md)
 - [Core concepts](docs/core_concepts.md)
-- Examples
 

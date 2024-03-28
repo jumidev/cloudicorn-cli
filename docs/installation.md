@@ -23,11 +23,11 @@ make install             # installs the cloudicorn CLI tool with python requirem
 cloudicorn_setup --install        # downloads and installs terraform
 ```
 
-
 ### Installing & using terraform modules
 
-cloudicorn can work with any terraform code that follows these guidelines.  Below are 
+`cloudicorn` can work with any terraform code that follows [these guidelines.](component_guidelines.md)  Below are repos for the big three cloud providers.
 
-- A repo with modules for Azure is provided [here](https://github.com/jumidev/terraform-modules-azure.git)
-- For AWS, [here](https://github.com/jumidev/terraform-modules-aws.git). (WIP)
+- [aws](https://github.com/jumidev/terraform-modules-auto-aws)
+- [azurerm](https://github.com/jumidev/terraform-modules-auto-azurerm)
+- [gcp](https://github.com/jumidev/terraform-modules-auto-gcp)
 

@@ -3,7 +3,6 @@
 - [Why Cloudicorn](#why-cloudicorn)
 - [Installation](installation.md)
 - [Core Concepts](#core-concepts)
-- Examples
 
 ## Why Cloudicorn
 
@@ -17,7 +16,3 @@ Cloudicorn is built on top of terraform.  terraform serves as a good foundation 
 
 For more information, see the dedicated [core concepts](core_concepts.md) page.
 
-## Examples
-
-
-```TODO```

@@ -94,6 +94,16 @@ Additionally, the following blocks can be declared in a component template:
 
 To avoid configuration duplication, component templates can be placed anywhere in the project .  For example, to avoid having to redeclare the `tfstate_store` blocks in all components, a `tfstate_store.hclt` file can be created in the root of the project
 
+### Terraform code
+
+Of course, cloudicorn needs terraform modules in order to function.  You can find cloudicorn provided terraform modules here:
+
+- [aws](https://github.com/jumidev/terraform-modules-auto-aws)
+- [azurerm](https://github.com/jumidev/terraform-modules-auto-azurerm)
+- [gcp](https://github.com/jumidev/terraform-modules-auto-gcp)
+
+Feel free to fork, modify and extend the above modules.  Guidelines on writing your own terraform modules for cloudicorn [can be found here!](component_guidelines.md)
+
 
 ## Variables
 
@@ -333,17 +343,3 @@ The above also works for feature branches.  If developer B is working on a featu
 
 The above git workflow security is enabled by default.  It can be disabled by setting the `CLOUDICORN_NO_GIT_CHECK` environment variable or via the `--no-git-check` cli flag.
 
-# TODO
-
-- remove terragrunt dependency
-    - predictable temp dirs in home dir
-    - auto cleanup previous runs older than x days
-    - auto manage remote states, 
-    - enrypted remote states
-- cloudicorn catalog
-    - for given resource type, get dependency tree, required and optional
-- cloudicorn catalog-generator
-
-- cloudicorn chart
-    spin up a visualizer of current cloudicorn project
-- example spoke and hub architecture
