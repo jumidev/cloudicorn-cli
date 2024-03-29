@@ -1,11 +1,12 @@
 # Writing Terraform Modules for Cloudicorn
 
-As small and generic as possible
+There's lots of ways to write and use terraform code, below is the cloudicorn approach.
 
 - To avoid monolithic code, modules create as few resources as possible and strive to be as generic as possible.
+- Where possible, use default values that closely match best practices
 - Modules must not specify a remote state provider, this is handled by Cloudicorn
-- Modules use input variables for all 
-- Module variables expose the attributes of their resources as inputs, with defaults that match most cases. 
+- No remote state data resources, this is handled by Cloudicorn
+- Don't assume that terraform workspaces will be used, cloudicorn does not use them
 
 # Coding conventions
 
@@ -20,7 +21,8 @@ To facilitate their ability to work together, these modules adhere to these codi
 
 ### Resource naming
 
-Resources are always named `this`, e.g.
+For simplifiy and consistency, resources are always named `this`, e.g.
+
 ```
 resource "azurerm_virtual_network" "this" {
 ...
@@ -34,18 +36,6 @@ Terraform provides a `backend` mechanism to store remote states and a `remote_st
 To allow modules to be as generic as possible, cloudicorn handles remote states using a global project level setting.  Likewise, in order to inject values from one resource to another, cloudicorn handles this on the component level with a `component_inputs` block. 
 
 
-
-# main.tf
-
-```
-
-resource "azurerm_network_security_group" "this" {
-  name                = var.name
-  location            = data.terraform_remote_state.resource_group.outputs.location
-  resource_group_name = data.terraform_remote_state.resource_group.outputs.name
-
-```
-
 ### Variables
 
 Modules use shortest possible variable names, without prefixing.  For example, for an `azurerm_resource_group` the variable used for its name shoudl be `var.name` **not** `var.resource_group_name`
@@ -54,7 +44,7 @@ Where applicable, modules should have a `var.tags` which is a map(any) type
 
 In almost all cases, azure resources require a resource group.  This must come from a remote state, **not** from a string, and **not** created in the module its self
 
-In many cases, azure resources need a `location` attribute.  This should come from the remote state of the provided resource group, **not** as a string
+In many cases, azure resources need a `location` attribute.  This should come from the attribute of the provided resource group, **not** as a string
 
 ### Outputs
 
