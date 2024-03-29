@@ -56,7 +56,7 @@ resource "azurerm_resource_group" "this" {
 
 ### `dynamic` blocks
 
-For resources that have multiple dependent subresources, use terraform's `dynamic` meta argument
+For resources that have multiple dependent subresources, use terraform's `dynamic` meta argument and a `map(map(any))` variable
 
 ```
 variable "security_rule" {
@@ -119,4 +119,9 @@ output "name" {
 
 To ensure component stability, the provider plugin version should be pinned.  Preferrably to a recent version.
 
+# Example components
 
+Below are repositories with terraform that adheres to the above guidelines.  Fork away!
+
+- [azurerm](https://github.com/jumidev/terraform-modules-auto-azurerm)
+- [aws](https://github.com/jumidev/terraform-modules-auto-aws)
