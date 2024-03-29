@@ -8,6 +8,7 @@ There's lots of ways to write and use terraform code, below is the cloudicorn ap
 - No remote state data resources, this is handled by Cloudicorn
 - Don't assume that terraform workspaces will be used, cloudicorn does not use them
 
+
 # Coding conventions
 
 To facilitate their ability to work together, these modules adhere to these coding conventions:
@@ -21,13 +22,38 @@ To facilitate their ability to work together, these modules adhere to these codi
 
 ### Resource naming
 
-For simplifiy and consistency, resources are always named `this`, e.g.
+For simplicity and consistency, resources are always named `this`, e.g.
 
 ```
 resource "azurerm_virtual_network" "this" {
 ...
 }
 ```
+
+When writing modules that create multiple instances of a resource, use terraform's `for_each` meta argument on a `map(map(any))`
+
+```
+variable "resource_groups" {
+  type        = map(map(any))
+  default     = null
+}
+
+# example map:
+#  rg1 = {
+#    location = "northeurope1"
+#  }
+#  rg2 = {
+#    location = "eastus-2"
+#  }
+
+resource "azurerm_resource_group" "this" {
+  for_each = var.resource_groups
+  name     = each.key
+  location = each.value.location
+}
+
+```
+
 
 ### Handling Remote states
 
