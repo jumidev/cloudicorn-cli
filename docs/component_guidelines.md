@@ -20,7 +20,7 @@ To facilitate their ability to work together, these modules adhere to these codi
 - **outputs.tf**: contains outputs
 - **variables.tf** contains variables
 
-### Resource naming
+### Resources
 
 For simplicity and consistency, resources are always named `this`, e.g.
 
@@ -54,6 +54,32 @@ resource "azurerm_resource_group" "this" {
 
 ```
 
+### `dynamic` blocks
+
+For resources that have multiple dependent subresources, use terraform's `dynamic` meta argument
+
+```
+variable "security_rule" {
+  type        = map(map(any))
+  default     = null
+}
+
+resource "azurerm_network_security_group" "this" {
+
+  name                = var.name
+  ...
+
+  dynamic "security_rule" {
+    for_each = var.security_rule != null ? var.security_rule : []
+    content {
+      name                                       = security_rule.key
+      description                                = lookup(security_rule.value, "description", null)
+      ...
+    }
+  }
+
+}
+```
 
 ### Handling Remote states
 
@@ -61,16 +87,16 @@ Terraform provides a `backend` mechanism to store remote states and a `remote_st
 
 To allow modules to be as generic as possible, cloudicorn handles remote states using a global project level setting.  Likewise, in order to inject values from one resource to another, cloudicorn handles this on the component level with a `component_inputs` block. 
 
+Terraform code using in cloudicorn does not need to have knowledge of the remote states, this is by design and allows for the terraform code to be simpler.
+
 
 ### Variables
 
 Modules use shortest possible variable names, without prefixing.  For example, for an `azurerm_resource_group` the variable used for its name shoudl be `var.name` **not** `var.resource_group_name`
 
-Where applicable, modules should have a `var.tags` which is a map(any) type
+Where applicable, modules should have a `var.tags` which is a `map(any)` type
 
 In almost all cases, azure resources require a resource group.  This must come from a remote state, **not** from a string, and **not** created in the module its self
-
-In many cases, azure resources need a `location` attribute.  This should come from the attribute of the provided resource group, **not** as a string
 
 ### Outputs
 
