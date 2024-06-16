@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import sys,  yaml, os
+from prompt_toolkit.shortcuts import yes_no_dialog, button_dialog
+from prompt_toolkit.shortcuts import message_dialog
+from prompt_toolkit.shortcuts import input_dialog
+from prompt_toolkit.shortcuts import radiolist_dialog
+from prompt_toolkit.formatted_text import HTML
+import sys
+import yaml
+import os
 
 from cloudicorn_core import log, Utils, assert_aws_creds, assert_azurerm_sp_creds, azurerm_sp_cred_keys, aws_cred_keys, aws_test_creds
 from cloudicorn_core import git_rootdir, run, HclParseException, get_random_string
 from git import Repo
 from pathlib import Path
-import re, tempfile
-import time, shutil
+import re
+import tempfile
+import time
+import shutil
 import argparse
 import hcl
 
@@ -16,13 +25,8 @@ import boto3
 
 PACKAGE = "cloudicorn_setup"
 LOG = True
-DEBUG=False
+DEBUG = False
 
-from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.shortcuts import radiolist_dialog
-from prompt_toolkit.shortcuts import input_dialog
-from prompt_toolkit.shortcuts import message_dialog
-from prompt_toolkit.shortcuts import yes_no_dialog, button_dialog
 
 class ProjectSetup():
 
@@ -35,7 +39,7 @@ class ProjectSetup():
 
         # can be over ridden for testing purposes
         self.dir = os.path.abspath(os.getcwd())
-    
+
     def checkstr(self, s):
         regex = r"^[a-zA-Z0-9_-]*$"
         matches = re.search(regex, s)
@@ -51,26 +55,26 @@ class ProjectSetup():
         proposed_link_name = ""
         while len(n) == 0:
             n = input_dialog(
-            title='Link a Project',
-            default=n,
-            text='Project filepath or git repo to link to:').run()
+                title='Link a Project',
+                default=n,
+                text='Project filepath or git repo to link to:').run()
             if n == None:
                 return None, None
 
         link_d = {}
         if n.startswith('https://') or n.startswith("git"):
             branch = input_dialog(
-            title='Git branch',
-            default="",
-            text='Use a specific branch or tag in {}?\nLeave blank for default branch'.format(n)).run()                                
+                title='Git branch',
+                default="",
+                text='Use a specific branch or tag in {}?\nLeave blank for default branch'.format(n)).run()
 
             if branch == None:
                 return None, None
 
             repo_path = input_dialog(
-            title='Git path',
-            default="",
-            text='Use a specific path within the repo? Leave blank for root path').run()
+                title='Git path',
+                default="",
+                text='Use a specific path within the repo? Leave blank for root path').run()
 
             if repo_path == None:
                 return None, None
@@ -90,37 +94,36 @@ class ProjectSetup():
         while len(link_name) < 5:
 
             link_name = input_dialog(
-            title='Link name',
-            default=proposed_link_name,
-            text='Name for this project link:').run()
+                title='Link name',
+                default=proposed_link_name,
+                text='Name for this project link:').run()
 
             if link_name == None:
                 return None, None
 
         ans = yes_no_dialog(
-        title='Ready',
-        text='Add the following link to project?\n {}'.format(yaml.dump({link_name: link_d}))).run()
+            title='Ready',
+            text='Add the following link to project?\n {}'.format(yaml.dump({link_name: link_d}))).run()
 
         if not ans:
             return None, None
-        
-        return link_name, link_d
 
+        return link_name, link_d
 
     def linkstui(self):
         # if dir is NOT already project, fail
         if not self.project_already_setup:
             ok = message_dialog(
-            title='Error',
-            text='Directory not setup as a project.').run()
+                title='Error',
+                text='Directory not setup as a project.').run()
             return
         existing_project = self.read_project()
         if "project_links" not in existing_project:
             existing_project["project_links"] = {}
             ans = yes_no_dialog(
-            title='Ready',
-            text='Project links allow you to reference other projects in your component tfstate_link blocks.  Proceed?').run()
-            
+                title='Ready',
+                text='Project links allow you to reference other projects in your component tfstate_link blocks.  Proceed?').run()
+
             if not ans:
                 time.sleep(0.3)
                 return
@@ -129,31 +132,32 @@ class ProjectSetup():
 
             link_info = ""
 
-            for k,v in existing_project["project_links"].items():
+            for k, v in existing_project["project_links"].items():
                 try:
                     target = v["repo"]
                 except:
                     target = v["path"]
 
                 link_info += "\nLink: {} -> {}".format(k, target)
-                link_info += "\nUsage in component_inputs: <some_input>: {}:path/to/component:<some_key>".format(k)
+                link_info += "\nUsage in component_inputs: <some_input>: {}:path/to/component:<some_key>".format(
+                    k)
                 link_info += "\n"
 
             ans = button_dialog(
-            title='Project links',
-            buttons=[("Great", False), ("Add New", True)],
-            text='{} Link(s) already configured for project:\n {}'.format(len(existing_project["project_links"].keys()), link_info)).run()
-            
+                title='Project links',
+                buttons=[("Great", False), ("Add New", True)],
+                text='{} Link(s) already configured for project:\n {}'.format(len(existing_project["project_links"].keys()), link_info)).run()
+
             if not ans:
                 return
-            
+
         (link_name, d) = self.add_project_link_tui()
 
         if link_name == None:
             return
-        
+
         existing_project["project_links"][link_name] = d
-        
+
         with open(self.yml_file, 'w') as fh:
             fh.write(yaml.dump(existing_project))
 
@@ -168,18 +172,18 @@ class ProjectSetup():
 
         if self.project_already_setup:
             ok = message_dialog(
-            title='Error',
-            text='Directory is already setup as a project.').run()
+                title='Error',
+                text='Directory is already setup as a project.').run()
             return
 
         name = None
         n = os.path.basename(os.path.abspath(os.getcwd()))
         while name == None:
             n = input_dialog(
-            title='Project name',
-            default=n,
-            text='Project name:').run()
-        
+                title='Project name',
+                default=n,
+                text='Project name:').run()
+
             if n == None:
                 if self.confirm_leave():
                     return
@@ -213,10 +217,10 @@ class ProjectSetup():
 
                 while repo == None:
                     r = input_dialog(
-                    title='Git repo',
-                    default=r,
-                    text='Repo url:').run()
-                
+                        title='Git repo',
+                        default=r,
+                        text='Repo url:').run()
+
                     if r == None:
                         if self.confirm_leave():
                             return
@@ -236,21 +240,20 @@ class ProjectSetup():
             elif result == "init":
                 self.git_clone = "init"
 
-
         result = yes_no_dialog(
             title='Setup root-level environment dirs',
             text='Do you want to specify root level projects dirs to be environment dirs?').run()
-                
+
         print(result)
         if result:
             e = None
             s = "dev,staging,preprod,prod"
             while e == None:
                 s = input_dialog(
-                title='Environments',
-                default=s,
-                text='Comma-separated environments:').run()
-            
+                    title='Environments',
+                    default=s,
+                    text='Comma-separated environments:').run()
+
                 envs = s.split(",")
                 for env in envs:
                     if not self.checkstr(env.strip()):
@@ -272,27 +275,29 @@ class ProjectSetup():
             result = yes_no_dialog(
                 title='Setup README.md?',
                 text='Do you want to add a boilerplate README.md file?').run()
-                    
+
             self.make_readme = result
 
-        txt = ["Project '{}' will be saved in {}".format(self.name, self.root_dir)]
+        txt = ["Project '{}' will be saved in {}".format(
+            self.name, self.root_dir)]
         if self.git_clone == "init":
             txt.append("✓ will be initialized as a new git repo")
         elif self.git_clone != None:
             txt.append("✓ will be cloned from {}".format(self.git_clone))
 
         if self.envs != None and len(self.envs) > 0:
-            txt.append("✓ {} root level environments will be created: {}".format(len(self.envs), ", ".join(self.envs)))
+            txt.append("✓ {} root level environments will be created: {}".format(
+                len(self.envs), ", ".join(self.envs)))
 
         result = yes_no_dialog(
             title='Ready to save',
             text="\n".join(txt)
-            ).run()
+        ).run()
 
         if result:
             self.save()
             return True
-        
+
         return False
 
     @property
@@ -306,7 +311,7 @@ class ProjectSetup():
     @property
     def gitignore_file(self):
         return "{}/.gitignore".format(self.root_dir)
-        
+
     @property
     def is_git(self):
         r = git_rootdir(self.root_dir)
@@ -316,10 +321,10 @@ class ProjectSetup():
     def project_already_setup(self):
         if not os.path.isdir(self.root_dir):
             return False
-        
+
         if os.path.isfile(self.yml_file):
             return True
-          
+
         return False
 
     def read_project(self):
@@ -328,7 +333,7 @@ class ProjectSetup():
                 d = yaml.load(fh, Loader=yaml.FullLoader)
 
             return d
-        
+
         return None
 
     def save(self):
@@ -342,7 +347,7 @@ class ProjectSetup():
 
         with open(self.yml_file, 'w') as fh:
             yaml.dump({
-                "project_name" : self.name
+                "project_name": self.name
             }, fh)
 
         gitignore = []
@@ -377,17 +382,17 @@ class ProjectSetup():
                     yaml.dump({"env": e}, fh)
             md.append("")
 
-
         if self.make_readme:
             with open("{}/README.md".format(self.root_dir), "w") as fh:
                 fh.write("\n".join(md))
 
+
 class SetupTfStateStorage(ProjectSetup):
-    
+
     @property
     def tfstate_file(self):
         return "{}/tfstate_store.hclt".format(self.root_dir)
-    
+
     def aws_bucket_exists(self, bucket):
         s3 = boto3.client("s3")
 
@@ -396,17 +401,18 @@ class SetupTfStateStorage(ProjectSetup):
             return True
         except:
             return False
-        
+
     def load(self):
         if not os.path.isfile(self.tfstate_file):
-            return 
-        
+            return
+
         with open(self.tfstate_file, 'r') as fp:
             try:
                 obj = hcl.load(fp)
                 return obj
             except:
-                raise HclParseException("FATAL: An error occurred while parsing {}\nPlease verify that this file is valid hcl syntax".format(self.tfstate_file))
+                raise HclParseException(
+                    "FATAL: An error occurred while parsing {}\nPlease verify that this file is valid hcl syntax".format(self.tfstate_file))
 
     def existing_tfstate_store_setup(self):
         try:
@@ -415,7 +421,7 @@ class SetupTfStateStorage(ProjectSetup):
                 return (False, False)
         except:
             return (False, False)
-        
+
         tfstate_store = o["tfstate_store"]
         if "bucket" in tfstate_store:
             return ("aws", tfstate_store.items())
@@ -423,9 +429,8 @@ class SetupTfStateStorage(ProjectSetup):
             return ("azure", tfstate_store.items())
         elif "path" in tfstate_store:
             return ("path", tfstate_store.items())
-        
-        return (False, False)
 
+        return (False, False)
 
     def tui(self):
         # if dir is already project, fail
@@ -438,23 +443,23 @@ class SetupTfStateStorage(ProjectSetup):
 
         if not self.project_already_setup:
             ok = message_dialog(
-            title='Error',
-            text='Directory is not setup as a project, please make a New project first.').run()
+                title='Error',
+                text='Directory is not setup as a project, please make a New project first.').run()
             return
 
         (existing, items) = self.existing_tfstate_store_setup()
         if existing != False:
             i = ["\n"]
-            for k,v in items:
-                i.append("{} = {}".format(k,v))
+            for k, v in items:
+                i.append("{} = {}".format(k, v))
             i.append("\n")
             ans = yes_no_dialog(
-            title='Hmm....',
-            text='tfstate_store currently configured for {}.\n{}\nReconfigure from scratch?'.format(existing, "\n".join(i))).run()
-            
+                title='Hmm....',
+                text='tfstate_store currently configured for {}.\n{}\nReconfigure from scratch?'.format(existing, "\n".join(i))).run()
+
             if not ans:
                 return
-            
+
         # aws creds
         aws = False
         try:
@@ -471,64 +476,64 @@ class SetupTfStateStorage(ProjectSetup):
 
         if aws:
             ans = yes_no_dialog(
-            title='AWS creds',
-            text='Setup AWS S3 bucket tfstore_storage?').run()
-            
+                title='AWS creds',
+                text='Setup AWS S3 bucket tfstore_storage?').run()
+
             if ans:
                 bucket = ""
                 while bucket == "":
                     bucket = input_dialog(
-                    title="Bucket",
-                    default=bucket,
-                    text='Please specify a bucket in region {}'.format(os.getenv("AWS_REGION"))).run()
+                        title="Bucket",
+                        default=bucket,
+                        text='Please specify a bucket in region {}'.format(os.getenv("AWS_REGION"))).run()
 
                     if bucket == None:
                         return
-                    
+
                     if not self.aws_bucket_exists(bucket):
                         ans = yes_no_dialog(
-                        title='Hmm....',
-                        text='It looks like bucket {} does not exist (or your credentials do not allow you access to it).\nProceed anyway?'.format(bucket)).run()
+                            title='Hmm....',
+                            text='It looks like bucket {} does not exist (or your credentials do not allow you access to it).\nProceed anyway?'.format(bucket)).run()
 
                         if not ans:
                             bucket == ""
                             time.sleep(0.3)
-
 
                 bucket_path = "tfstate"
 
                 existing_project = self.read_project()
                 if existing_project != None:
                     if "project_name" in existing_project:
-                        bucket_path = "tfstate/"+existing_project["project_name"]+'/${COMPONENT_PATH}'
+                        bucket_path = "tfstate/" + \
+                            existing_project["project_name"] + \
+                            '/${COMPONENT_PATH}'
 
                 bucket_path = input_dialog(
-                title="Bucket path",
-                default=bucket_path,
-                text='Please specify a path prefix for storing tfstore files').run()
+                    title="Bucket path",
+                    default=bucket_path,
+                    text='Please specify a path prefix for storing tfstore files').run()
 
                 ans = yes_no_dialog(
-                title='Save',
-                text='Save to tfstate_store.hclt?').run()
+                    title='Save',
+                    text='Save to tfstate_store.hclt?').run()
 
                 if ans:
                     h = {
-                        "tfstate_store" : {
-                            "bucket" : bucket,
-                            "bucket_path" : bucket_path
+                        "tfstate_store": {
+                            "bucket": bucket,
+                            "bucket_path": bucket_path
                         }
                     }
                     Path(self.tfstate_file).touch()
                     with open(self.tfstate_file, 'w') as fh:
                         fh.write("tfstate_store {\n")
                         fh.write("     bucket      = \"{}\" \n".format(bucket))
-                        fh.write("     bucket_path = \"{}\" \n".format(bucket_path))
+                        fh.write(
+                            "     bucket_path = \"{}\" \n".format(bucket_path))
                         fh.write("}\n")
-                        
 
         elif azure:
             pass
-
 
 
 class SetupCreds():
@@ -536,9 +541,9 @@ class SetupCreds():
     @property
     def menu(self):
         return {
-            "title" : "Setup cloud credentials",
-            "text"  : "Select from the following cloud providers",
-            "items" : [
+            "title": "Setup cloud credentials",
+            "text": "Select from the following cloud providers",
+            "items": [
                 ("aws", "AWS"),
                 ("azure", "Azure"),
                 ("gcp", "GCP"),
@@ -573,16 +578,15 @@ class SetupCreds():
             creds.append("aws")
         if azure:
             creds.append("azure")
-        
+
         if len(creds) > 0:
             ans = button_dialog(
-            title='Hmm....',
-            buttons=[("Leave as-is", False), ("Reconfigure", True)],
-            text='Credentials already configured for {}.\nReconfigure credentials?'.format(" and ".join(creds))).run()
-            
+                title='Hmm....',
+                buttons=[("Leave as-is", False), ("Reconfigure", True)],
+                text='Credentials already configured for {}.\nReconfigure credentials?'.format(" and ".join(creds))).run()
+
             if not ans:
                 return
-            
 
         result = "aws"
         while result != None:
@@ -590,7 +594,7 @@ class SetupCreds():
                 values=self.menu["items"],
                 title=self.menu["title"],
                 text=self.menu["text"],
-                default = result
+                default=result
             ).run()
 
             creds = {}
@@ -598,42 +602,39 @@ class SetupCreds():
             if result == "aws":
                 for k in aws_cred_keys():
                     v = input_dialog(
-                    title=k,
-                    default=os.getenv(k, ""),
-                    text='Please input {}:'.format(k)).run()
+                        title=k,
+                        default=os.getenv(k, ""),
+                        text='Please input {}:'.format(k)).run()
 
                     creds[k] = v
                     os.environ[k] = v
 
                 ans = yes_no_dialog(
-                title='Test',
-                text='Test credentials?').run()
+                    title='Test',
+                    text='Test credentials?').run()
 
                 if ans:
                     if not aws_test_creds():
                         ans = yes_no_dialog(
-                        title='FAIL',
-                        text='Credentials rejected, start over?').run()
+                            title='FAIL',
+                            text='Credentials rejected, start over?').run()
                         if ans:
                             continue
                         return
 
-                 
-
-
             if result == "azure":
                 for k in azurerm_sp_cred_keys():
                     v = input_dialog(
-                    title=k,
-                    default=os.getenv(k, ""),
-                    text='Please input {}:\n\nSee https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret for details'.format(k)).run()
+                        title=k,
+                        default=os.getenv(k, ""),
+                        text='Please input {}:\n\nSee https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret for details'.format(k)).run()
 
                     creds[k] = v
 
             if len(creds.keys()) > 0:
                 ans = yes_no_dialog(
-                title='Save'.format(result),
-                text='Save credentials to {}/.envrc?'.format(os.path.abspath(os.getcwd()))).run()
+                    title='Save'.format(result),
+                    text='Save credentials to {}/.envrc?'.format(os.path.abspath(os.getcwd()))).run()
 
                 if ans:
                     Path(".envrc").touch()
@@ -652,47 +653,49 @@ class SetupCreds():
                     with open(".envrc", 'w') as fh:
                         for l in envrc:
                             fh.writelines(l)
-                        for k,v in creds.items():
-                            fh.write("\nexport {}=\"{}\"".format(k,v))
+                        for k, v in creds.items():
+                            fh.write("\nexport {}=\"{}\"".format(k, v))
                         fh.write("\n")
 
                     if not direnv:
                         ok = message_dialog(
-                        title='Oops...',
-                        text='direnv is not installed.  Check out https://direnv.net/docs/installation.html').run()
+                            title='Oops...',
+                            text='direnv is not installed.  Check out https://direnv.net/docs/installation.html').run()
 
                     return
+
 
 def main(argv=[]):
 
     proj = ProjectSetup()
 
-
     parser = argparse.ArgumentParser(description='',
-    add_help=True,
-    formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('--debug', action='store_true', help='display debug messages')
-    parser.add_argument('--install', action='store_true', help='install / upgrade terraform')
+                                     add_help=True,
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('--debug', action='store_true',
+                        help='display debug messages')
+    parser.add_argument('--install', action='store_true',
+                        help='install / upgrade terraform')
     args = parser.parse_args(args=argv)
 
-    if args.debug or os.getenv('CLOUDICORN_DEBUG', 'n')[0].lower() in ['y', 't', '1'] :
+    if args.debug or os.getenv('CLOUDICORN_DEBUG', 'n')[0].lower() in ['y', 't', '1']:
         global DEBUG
         DEBUG = True
         log("debug mode enabled")
 
     menu = {
         "main":  {
-            "title" : "{} Main Menu".format(PACKAGE),
-            "text"  : "Current working directory is {}\nSelect from the following options".format(os.path.abspath(os.getcwd())),
-            "items" : [
+            "title": "{} Main Menu".format(PACKAGE),
+            "text": "Current working directory is {}\nSelect from the following options".format(os.path.abspath(os.getcwd())),
+            "items": [
                 ("terraform", "Install/upgrade terraform"),
                 (None, "Exit")
 
             ]
         }
-        
+
     }
-    
+
     result = "new_project"
     if proj.project_already_setup:
         result = "creds"
@@ -721,19 +724,21 @@ def main(argv=[]):
                 creds.append("aws")
             if azure:
                 creds.append("azure")
-                
+
             if len(creds) > 0:
                 tfproj = SetupTfStateStorage()
                 (setup, t) = tfproj.existing_tfstate_store_setup()
                 if setup:
-                    menuvalues.insert(0,("tfstore_setup_encryption", "Setup/check tfstate storage encryption"))
+                    menuvalues.insert(
+                        0, ("tfstore_setup_encryption", "Setup/check tfstate storage encryption"))
 
-                menuvalues.insert(0,("tfstore_setup", "Setup/check tfstate storage"))
-            menuvalues.insert(0,("links", "Setup/check project links"))
-            menuvalues.insert(0,("creds", "Setup/check cloud credentials"))
+                menuvalues.insert(
+                    0, ("tfstore_setup", "Setup/check tfstate storage"))
+            menuvalues.insert(0, ("links", "Setup/check project links"))
+            menuvalues.insert(0, ("creds", "Setup/check cloud credentials"))
 
         else:
-            menuvalues.insert(0,('new_project', 'New Project'))
+            menuvalues.insert(0, ('new_project', 'New Project'))
 
         if args.install:
             result = "terraform"
@@ -742,7 +747,7 @@ def main(argv=[]):
                 values=menuvalues,
                 title=menu["main"]["title"],
                 text=menu["main"]["text"],
-                default = result
+                default=result
             ).run()
 
         u = Utils()
@@ -761,19 +766,18 @@ def main(argv=[]):
                 if result in missing:
                     u.install_terraform()
                     ok = message_dialog(
-                    title='Success',
-                    text='terraform {} successfully installed.'.format(u.terraform_currentversion()[0])).run()
+                        title='Success',
+                        text='terraform {} successfully installed.'.format(u.terraform_currentversion()[0])).run()
                 elif result in outdated:
                     ans = yes_no_dialog(
-                    title='{} is out of date'.format(result),
-                    text='upgrade to latest version?').run()
+                        title='{} is out of date'.format(result),
+                        text='upgrade to latest version?').run()
                     if ans:
                         u.install_terraform()
                 else:
                     ok = message_dialog(
-                    title='Nothing to do',
-                    text='terraform {} is already installed in {} and is the latest version.'.format(u.terraform_currentversion()[0], u.terraform_path)).run()
-
+                        title='Nothing to do',
+                        text='terraform {} is already installed in {} and is the latest version.'.format(u.terraform_currentversion()[0], u.terraform_path)).run()
 
                 terraformrc = os.path.expanduser('~/.terraformrc')
                 plugin_cache = False
@@ -789,19 +793,20 @@ def main(argv=[]):
 
                 if not plugin_cache:
                     ans = yes_no_dialog(
-                    title='No terraform plugin cache'.format(result),
-                    text='No terraform plugin cache found in ~/.terraformrc.  Caching terraform plugins locally saves bandwidth and reduces init time.  Enable caching?').run()
+                        title='No terraform plugin cache'.format(result),
+                        text='No terraform plugin cache found in ~/.terraformrc.  Caching terraform plugins locally saves bandwidth and reduces init time.  Enable caching?').run()
                     if ans:
-                        lines.append('plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"')
-                        
-                        with open(terraformrc, "w") as fh:  
+                        lines.append(
+                            'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"')
+
+                        with open(terraformrc, "w") as fh:
                             for l in lines:
                                 fh.write(l)
 
             except Exception as e:
                 ok = message_dialog(
-                title='Error',
-                text='Could not check {}\n {}.'.format(result, str(e))).run()
+                    title='Error',
+                    text='Could not check {}\n {}.'.format(result, str(e))).run()
             time.sleep(0.3)
 
         if args.install:
@@ -816,36 +821,37 @@ def main(argv=[]):
                 if k.startswith("CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE"):
                     v = os.getenv(k)
                     p = v[:5] + '*'*(len(v)-5)
-                    tfstate_store_encryption_passphrases.append("{}={}".format(k, p))
+                    tfstate_store_encryption_passphrases.append(
+                        "{}={}".format(k, p))
 
             if len(tfstate_store_encryption_passphrases) > 0:
 
                 ans = button_dialog(
-                title='Already setup',
-                buttons=[("Leave as-is", False), ("Change password", True)],
-                text='Tfstate encryption already configured:\n\n{}\n\nChange password?'.format("\n".join(tfstate_store_encryption_passphrases))).run()
-                
-                if not ans:
-                    continue
-                ans = button_dialog(
-                title='Confirm',
-                buttons=[("Cancel", False), ("Change password", True)],
-                text='A new passphrase will be generated and saved to .envrc. The current passphrase will be saved to CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE_OLD.  As cloudicorn apply is run, tfstate files will be decrypted using the old password and reencrypted using the new. Any other users or tasks that read the tfstate will need to have the encryption key to read them.').run()
+                    title='Already setup',
+                    buttons=[("Leave as-is", False),
+                             ("Change password", True)],
+                    text='Tfstate encryption already configured:\n\n{}\n\nChange password?'.format("\n".join(tfstate_store_encryption_passphrases))).run()
 
                 if not ans:
                     continue
-             
+                ans = button_dialog(
+                    title='Confirm',
+                    buttons=[("Cancel", False), ("Change password", True)],
+                    text='A new passphrase will be generated and saved to .envrc. The current passphrase will be saved to CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE_OLD.  As cloudicorn apply is run, tfstate files will be decrypted using the old password and reencrypted using the new. Any other users or tasks that read the tfstate will need to have the encryption key to read them.').run()
+
+                if not ans:
+                    continue
 
             else:
 
                 ans = button_dialog(
-                title='Confirm',
-                buttons=[("Cancel", False), ("Enable", True)],
-                text='A strong encryption passphrase will be generated and saved to .envrc.  Any unencrypted tfstate files will be encrypted on the next apply. Any other users or tasks that read the tfstate will need to have the encryption key to read them.  Enable at-rest tfstate encryption?').run()
+                    title='Confirm',
+                    buttons=[("Cancel", False), ("Enable", True)],
+                    text='A strong encryption passphrase will be generated and saved to .envrc.  Any unencrypted tfstate files will be encrypted on the next apply. Any other users or tasks that read the tfstate will need to have the encryption key to read them.  Enable at-rest tfstate encryption?').run()
 
                 if not ans:
-                    continue 
-                
+                    continue
+
             passphrase = get_random_string(48)
             Path(".envrc").touch()
 
@@ -853,13 +859,15 @@ def main(argv=[]):
             with open(".envrc", 'r') as fh:
                 for line in fh.readlines():
                     if line.startswith("export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE="):
-                        line = "export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE_OLD="+line.split("=",1)[1]+"\n"
-                        os.environ["CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE_OLD"] = line.split("=",1)[1]
+                        line = "export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE_OLD=" + \
+                            line.split("=", 1)[1]+"\n"
+                        os.environ["CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE_OLD"] = line.split("=", 1)[
+                            1]
 
                     envrc.append(line)
 
-
-            envrc.append("export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE={}".format(passphrase))
+            envrc.append(
+                "export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE={}".format(passphrase))
             with open(".envrc", 'w') as fh:
                 for l in envrc:
                     fh.writelines(l)
@@ -867,8 +875,8 @@ def main(argv=[]):
             os.environ["CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE"] = passphrase
 
             message_dialog(
-            title='Done',
-            text='CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE saved to .envrc.').run()
+                title='Done',
+                text='CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE saved to .envrc.').run()
 
             time.sleep(0.3)
 
@@ -882,11 +890,11 @@ def main(argv=[]):
             tfproj.tui()
             time.sleep(0.3)
 
-                
 
 def cli_entrypoint():
     retcode = main(sys.argv[1:])
     exit(retcode)
+
 
 if __name__ == '__main__':
     retcode = main(sys.argv)

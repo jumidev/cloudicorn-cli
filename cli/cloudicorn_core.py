@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import json, os, sys, yaml, hcl, zipfile, shutil, time
+import json
+import os
+import sys
+import yaml
+import hcl
+import zipfile
+import shutil
+import time
 from fuzzywuzzy import fuzz
 import tempfile
 from subprocess import Popen, PIPE
 import requests
 from collections import OrderedDict
-import re, hashlib, string, random
+import re
+import hashlib
+import string
+import random
 from pathlib import Path
 from copy import deepcopy
 
@@ -26,17 +36,19 @@ import botocore
 from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_blob_sas
 from azure.identity import EnvironmentCredential
 from azure.mgmt.storage import StorageManagementClient
-from azure.mgmt.resource  import  ResourceManagementClient
+from azure.mgmt.resource import ResourceManagementClient
 from azure.core.exceptions import ResourceNotFoundError
 
 PACKAGE = "cloudicorn"
 LOG = True
-DEBUG=False
+DEBUG = False
+
 
 def get_cloudicorn_cachedir(salt, cleanup=True):
     current_date_slug = datetime.today().strftime('%Y-%m-%d')
-    
-    slug = hashlib.sha224("{}{}".format(get_random_string(64),salt).encode('utf-8')).hexdigest()
+
+    slug = hashlib.sha224("{}{}".format(
+        get_random_string(64), salt).encode('utf-8')).hexdigest()
     wdir_root = os.path.expanduser('~/.cache/cloudicorn/')
 
     wdir_d = os.path.join(wdir_root, current_date_slug)
@@ -48,17 +60,19 @@ def get_cloudicorn_cachedir(salt, cleanup=True):
         # first time today cloudicorn has been run, clean up past cache
         if cleanup:
             clean_cache(wdir_root, 30)
-        
+
     wdir_p = os.path.join(wdir_d, slug)
     os.makedirs(wdir_p)
 
     return wdir_p
+
 
 def get_random_string(length):
     # choose from all lowercase letter
     l1 = string.ascii_lowercase + string.ascii_uppercase
     result_str = ''.join(random.choice(l1) for i in range(length))
     return str(result_str)
+
 
 def anyof(needles, haystack):
     for n in needles:
@@ -67,12 +81,14 @@ def anyof(needles, haystack):
 
     return False
 
+
 def hcldump(obj):
     hcls = ""
     for f in hcldumplines(obj):
         hcls = "{}{}".format(hcls, f)
 
     return hcls
+
 
 def recursive_dict_set(d, parts, val):
     if len(parts) == 1:
@@ -82,10 +98,14 @@ def recursive_dict_set(d, parts, val):
             d[parts[0]] = {}
             recursive_dict_set(d[parts[0]], parts[1:], val)
             return
+
+
 class HclDumpException(Exception):
     pass
 
+
 HCL_KEY_RE = r"^\w+$"
+
 
 def hcldumplines(obj, recursions=0):
     nextrecursion = recursions+1
@@ -95,13 +115,15 @@ def hcldumplines(obj, recursions=0):
     if type(obj) in (dict,  OrderedDict):
         if recursions > 0:
             yield "   "*(recursions-1)+'{\n'
-        for k,v in obj.items():
+        for k, v in obj.items():
             if type(k) != str:
-                raise HclDumpException("dictionary keys can only contain letters, numbers and underscores")
+                raise HclDumpException(
+                    "dictionary keys can only contain letters, numbers and underscores")
 
             matches = re.findall(HCL_KEY_RE, k)
             if len(matches) == 0:
-                raise HclDumpException("dictionary keys can only contain letters, numbers and underscores")
+                raise HclDumpException(
+                    "dictionary keys can only contain letters, numbers and underscores")
             yield '{}{} = '.format("   "*recursions, k)
             yield from hcldumplines(v, nextrecursion)
             yield "{}\n".format(" "*recursions)
@@ -116,13 +138,14 @@ def hcldumplines(obj, recursions=0):
             yield from hcldumplines(obj[i], nextrecursion)
             if i < m:
                 yield ","
-            i+=1
+            i += 1
         yield ']\n'
     elif type(obj) in (int, float):
         yield obj
 
     elif type(obj) == str:
         yield '"'+obj+'"'
+
 
 def stylelog(s):
     if type(s) is str:
@@ -132,17 +155,21 @@ def stylelog(s):
         s = s.replace("</b>", "\033[0;0m")
     return s
 
+
 def log(s):
     if LOG == True:
-        print (stylelog(s))
+        print(stylelog(s))
+
 
 def debug(s):
     if DEBUG == True:
-        print (stylelog(s))
+        print(stylelog(s))
+
 
 def run(cmd, splitlines=False, env=os.environ, raise_exception_on_fail=False, cwd='.'):
     # you had better escape cmd cause it's goin to the shell as is
-    proc = Popen([cmd], stdout=PIPE, stderr=PIPE, universal_newlines=True, shell=True, env=env, cwd=cwd)
+    proc = Popen([cmd], stdout=PIPE, stderr=PIPE,
+                 universal_newlines=True, shell=True, env=env, cwd=cwd)
     out, err = proc.communicate()
     if splitlines:
         out_split = []
@@ -155,9 +182,11 @@ def run(cmd, splitlines=False, env=os.environ, raise_exception_on_fail=False, cw
     exitcode = int(proc.returncode)
 
     if raise_exception_on_fail and exitcode != 0:
-        raise Exception("Running {} resulted in return code {}, below is stderr: \n {}".format(cmd, exitcode, err))
+        raise Exception("Running {} resulted in return code {}, below is stderr: \n {}".format(
+            cmd, exitcode, err))
 
     return (out, err, exitcode)
+
 
 def runshow(cmd, env=os.environ, cwd='.'):
     # you had better escape cmd cause it's goin to the shell as is
@@ -169,19 +198,21 @@ def runshow(cmd, env=os.environ, cwd='.'):
         stdout = None
         strerr = None
 
-    proc = Popen([cmd], stdout=stdout, stderr=stderr, shell=True, env=env, cwd=cwd)
+    proc = Popen([cmd], stdout=stdout, stderr=stderr,
+                 shell=True, env=env, cwd=cwd)
     proc.communicate()
 
     exitcode = int(proc.returncode)
 
     return exitcode
 
+
 def flatwalk_up(haystack, needle):
     results = []
     spl = needle.split("/")
     needle_parts = [spl.pop(0)]
     for s in spl:
-        add = "/".join([needle_parts[-1],s])
+        add = "/".join([needle_parts[-1], s])
         needle_parts.append(add)
 
     for (folder, fn) in flatwalk(haystack):
@@ -192,22 +223,25 @@ def flatwalk_up(haystack, needle):
         if folder == haystack:
             results.append((folder, fn))
 
-    for (folder, fn) in results: 
-        debug ((folder, fn))
+    for (folder, fn) in results:
+        debug((folder, fn))
         yield (folder, fn)
+
 
 def flatwalk(path):
     for (folder, b, c) in os.walk(path):
         for fn in c:
             yield (folder, fn)
 
+
 def clean_cache(d, olderthan_days=30):
-    cutoff = (time.time())- olderthan_days * 86400
+    cutoff = (time.time()) - olderthan_days * 86400
     for fn in os.scandir(d):
         p = os.path.join(d, fn.name)
         if os.path.isdir(p):
             if os.path.getmtime(p) < cutoff:
                 shutil.rmtree(p)
+
 
 def dir_is_git_repo(dir):
     try:
@@ -219,28 +253,30 @@ def dir_is_git_repo(dir):
 
     return False
 
+
 def git_rootdir(dir="."):
     if dir_is_git_repo(dir):
         return dir
     else:
-        #print (wdir)
+        # print (wdir)
         oneup = os.path.abspath(dir+'/../')
         if oneup != "/":
-            #print ("trying {}".format(oneup))
+            # print ("trying {}".format(oneup))
             return git_rootdir(oneup)
         else:
             # not a git repository
             return None
 
+
 def git_check(wdir='.'):
-    
+
     git_root = git_rootdir(wdir)
 
     if git_root == None:
         return 0
 
     f = "{}/.git/FETCH_HEAD".format(os.path.abspath(git_root))
-    
+
     if os.path.isfile(f):
         '''
          make sure this is not a freshly cloned repo with no FETCH_HEAD
@@ -251,61 +287,64 @@ def git_check(wdir='.'):
         # if the repo is a fresh clone, there is no FETCH_HEAD
         # so set time diff to more than a minute to force a fetch
         diff = 61
-        
+
     repo = Repo(git_root)
 
     assert not repo.bare
 
     remote_names = []
-    
+
     # fetch at most once per minute
     for r in repo.remotes:
         remote_names.append(r.name)
         if diff > 60:
             remote = Remote(repo, r.name)
             remote.fetch()
-        
+
     # check what branch we're on
     branch = repo.active_branch.name
-        
+
     origin_branch = None
     for ref in repo.git.branch('-r').split('\n'):
         for rn in remote_names:
             if "{}/{}".format(rn, branch) in ref:
                 origin_branch = ref.strip()
                 break
-        
-        
+
     if origin_branch == None:
         # no remote branch to compare to
         return 0
-        
+
     # check if local branch is ahead and /or behind remote branch
-    command = "git -C {} rev-list --left-right --count \"{}...{}\"".format(git_root, branch, origin_branch)
-    #print command
+    command = "git -C {} rev-list --left-right --count \"{}...{}\"".format(
+        git_root, branch, origin_branch)
+    # print command
     (ahead_behind, err, exitcode) = run(command, raise_exception_on_fail=True)
     ahead_behind = ahead_behind.strip().split("\t")
     ahead = int(ahead_behind[0])
     behind = int(ahead_behind.pop())
-    
+
     if behind > 0:
         sys.stderr.write("")
-        sys.stderr.write("GIT ERROR: You are on branch {} and are behind the remote.  Please git pull and/or merge before proceeding.  Below is a git status:".format(branch))
+        sys.stderr.write(
+            "GIT ERROR: You are on branch {} and are behind the remote.  Please git pull and/or merge before proceeding.  Below is a git status:".format(branch))
         sys.stderr.write("")
         (status, err, exitcode) = run("git -C {} status ".format(git_root))
         sys.stderr.write(status)
         sys.stderr.write("")
-        return(-1)
+        return (-1)
     else:
-    
-        CLOUDICORN_GIT_DEFAULT_BRANCH = os.getenv('CLOUDICORN_GIT_DEFAULT_BRANCH', 'master')
-        
+
+        CLOUDICORN_GIT_DEFAULT_BRANCH = os.getenv(
+            'CLOUDICORN_GIT_DEFAULT_BRANCH', 'master')
+
         if branch != CLOUDICORN_GIT_DEFAULT_BRANCH:
             '''
                 in this case assume we're on a feature branch
                 if the FB is behind master then issue a warning
             '''
-            command = "git -C {} branch -vv | grep {} ".format(git_root, CLOUDICORN_GIT_DEFAULT_BRANCH)
+            command = "git -C {} branch -vv | grep {} ".format(
+                git_root, CLOUDICORN_GIT_DEFAULT_BRANCH)
             (origin_master, err, exitcode) = run(command)
             if exitcode != 0:
                 '''
@@ -313,64 +352,76 @@ def git_check(wdir='.'):
                 on the default branch afterall and that we're up to date persuant to the above code
                 '''
                 return 0
-            
+
             for line in origin_master.split("\n"):
                 if line.strip().startswith(CLOUDICORN_GIT_DEFAULT_BRANCH):
                     origin = line.strip().split('[')[1].split('/')[0]
 
             assert origin != None
 
-            command = "git -C {} rev-list --left-right --count \"{}...{}/{}\"".format(git_root, branch, origin, CLOUDICORN_GIT_DEFAULT_BRANCH)
+            command = "git -C {} rev-list --left-right --count \"{}...{}/{}\"".format(
+                git_root, branch, origin, CLOUDICORN_GIT_DEFAULT_BRANCH)
             (ahead_behind, err, exitcode) = run(command)
             ahead_behind = ahead_behind.strip().split("\t")
             ahead = int(ahead_behind[0])
             behind = int(ahead_behind.pop())
 
-            command = "git -C {} rev-list --left-right --count \"{}...{}\"".format(git_root, branch, CLOUDICORN_GIT_DEFAULT_BRANCH)
+            command = "git -C {} rev-list --left-right --count \"{}...{}\"".format(
+                git_root, branch, CLOUDICORN_GIT_DEFAULT_BRANCH)
             (ahead_behind, err, exitcode) = run(command)
             ahead_behind = ahead_behind.strip().split("\t")
             local_ahead = int(ahead_behind[0])
             local_behind = int(ahead_behind.pop())
 
-            
             if behind > 0:
                 sys.stderr.write("")
-                sys.stderr.write("GIT WARNING: Your branch, {}, is {} commit(s) behind {}/{}.\n".format(branch, behind, origin, CLOUDICORN_GIT_DEFAULT_BRANCH))
-                sys.stderr.write("This action may clobber new changes that have occurred in {} since your branch was made.\n".format(CLOUDICORN_GIT_DEFAULT_BRANCH))
-                sys.stderr.write("It is recommended that you stop now and merge or rebase from {}\n".format(CLOUDICORN_GIT_DEFAULT_BRANCH))
+                sys.stderr.write("GIT WARNING: Your branch, {}, is {} commit(s) behind {}/{}.\n".format(
+                    branch, behind, origin, CLOUDICORN_GIT_DEFAULT_BRANCH))
+                sys.stderr.write("This action may clobber new changes that have occurred in {} since your branch was made.\n".format(
+                    CLOUDICORN_GIT_DEFAULT_BRANCH))
+                sys.stderr.write("It is recommended that you stop now and merge or rebase from {}\n".format(
+                    CLOUDICORN_GIT_DEFAULT_BRANCH))
                 sys.stderr.write("\n")
-                
+
                 if ahead != local_ahead or behind != local_behind:
                     sys.stderr.write("")
-                    sys.stderr.write("INFO: your local {} branch is not up to date with {}/{}\n".format(CLOUDICORN_GIT_DEFAULT_BRANCH, origin, CLOUDICORN_GIT_DEFAULT_BRANCH))
+                    sys.stderr.write("INFO: your local {} branch is not up to date with {}/{}\n".format(
+                        CLOUDICORN_GIT_DEFAULT_BRANCH, origin, CLOUDICORN_GIT_DEFAULT_BRANCH))
                     sys.stderr.write("HINT:")
-                    sys.stderr.write("git checkout {} ; git pull ; git checkout {}\n".format(CLOUDICORN_GIT_DEFAULT_BRANCH, branch))
+                    sys.stderr.write("git checkout {} ; git pull ; git checkout {}\n".format(
+                        CLOUDICORN_GIT_DEFAULT_BRANCH, branch))
                     sys.stderr.write("\n")
-                    
-                answer = input("Do you want to continue anyway? [y/N]? ").lower()
-                
+
+                answer = input(
+                    "Do you want to continue anyway? [y/N]? ").lower()
+
                 if answer != 'y':
                     log("")
                     log("Aborting due to user input")
                     exit()
-            
-        return 0
 
+        return 0
 
 
 class WrongPasswordException(Exception):
     pass
 
+
 class MissingEncryptionPassphrase(Exception):
     pass
+
+
 class NoRemoteState(Exception):
     pass
+
 
 class RemoteStateKeyNotFound(Exception):
     pass
 
+
 class TerraformException(Exception):
     pass
+
 
 class WrapTerraform():
 
@@ -386,7 +437,7 @@ class WrapTerraform():
     def get_cache_dir(ymlfile, package_name):
         cache_slug = os.path.abspath(ymlfile)
         debug("cache_slug = {}".format(cache_slug))
-        return  os.path.expanduser('~/.{}_cache/{}'.format(package_name, hashlib.sha224(cache_slug).hexdigest()))
+        return os.path.expanduser('~/.{}_cache/{}'.format(package_name, hashlib.sha224(cache_slug).hexdigest()))
 
     def set_option(self, option):
         self.cli_options.append(option)
@@ -396,11 +447,12 @@ class WrapTerraform():
 
     def get_command(self, command, extra_args=[]):
 
-        cmd = "{} {} {} {}".format(self.tf_bin, command, " ".join(set(self.cli_options)), " ".join(extra_args))
-        
+        cmd = "{} {} {} {}".format(self.tf_bin, command, " ".join(
+            set(self.cli_options)), " ".join(extra_args))
+
         if self.quiet:
             cmd += " > /dev/null 2>&1 "
-        
+
         debug("running command:\n{}".format(cmd))
         return cmd
 
@@ -408,25 +460,27 @@ class WrapTerraform():
 class ErrorParsingYmlVars(Exception):
     pass
 
+
 class HclParseException(Exception):
     pass
+
 
 class Project():
 
     def __init__(self,
-        git_filtered=False,
-        conf_marker="project.yml",
-        inpattern=".hclt",
-        project_vars={},
-        wdir=None
-        ):
+                 git_filtered=False,
+                 conf_marker="project.yml",
+                 inpattern=".hclt",
+                 project_vars={},
+                 wdir=None
+                 ):
 
         if wdir == None:
             wdir = os.getcwd()
         self.wdir = wdir
-        self.inpattern=inpattern
-        self.component_dir=None
-        self.vars=None
+        self.inpattern = inpattern
+        self.component_dir = None
+        self.vars = None
         self.parse_messages = []
         self.linked_projects = None
 
@@ -449,7 +503,7 @@ class Project():
         self.tf_dir = dir
 
     def set_component_dir(self, dir):
-        self.component_dir=dir
+        self.component_dir = dir
 
         cdir_slug = dir.replace('/', '_')
         tf_wdir_p = get_cloudicorn_cachedir(self.project_root+cdir_slug)
@@ -466,19 +520,20 @@ class Project():
     def check_hclt_file(self, path):
         only_whitespace = True
         with open(path, 'r') as lines:
-            for line in lines:    
-                #debug("##{}##".format(line.strip()))     
+            for line in lines:
+                # debug("##{}##".format(line.strip()))
                 if line.strip() != "":
                     only_whitespace = False
                     break
-        #debug(only_whitespace)     
+        # debug(only_whitespace)
 
         if not only_whitespace:
             with open(path, 'r') as fp:
                 try:
                     obj = hcl.load(fp)
                 except:
-                    raise HclParseException("FATAL: An error occurred while parsing {}\nPlease verify that this file is valid hcl syntax".format(path))
+                    raise HclParseException(
+                        "FATAL: An error occurred while parsing {}\nPlease verify that this file is valid hcl syntax".format(path))
 
         return only_whitespace
 
@@ -514,19 +569,20 @@ class Project():
 
             with open(path, 'w') as fh:
                 fh.write(out)
-                
+
     def example_commands(self, command):
         log("")
 
-        for which, component, match in self.get_components():   
+        for which, component, match in self.get_components():
             if match:
                 s = "{} {} {}".format(PACKAGE, command, component)
                 if which == "bundle":
-                    s = "{} {} <u><b>{}</u>".format(PACKAGE, command, component)
+                    s = "{} {} <u><b>{}</u>".format(PACKAGE,
+                                                    command, component)
 
                 log(s)
         log("")
-        
+
    # def get_filtered_components(wdir, filter):
 
     def get_components(self):
@@ -534,7 +590,8 @@ class Project():
             self.components = []
             filtered = []
             if self.git_filtered:
-                (out, err, exitcode) = run("git status -s -uall", raise_exception_on_fail=True)
+                (out, err, exitcode) = run(
+                    "git status -s -uall", raise_exception_on_fail=True)
                 for line in out.split("\n"):
                     p = line.split(" ")[-1]
                     if len(p) > 3:
@@ -557,7 +614,7 @@ class Project():
 
                     else:
                         self.components.append((which, dirpath, True))
-        
+
         return self.components
 
     def component_type(self, component):
@@ -598,7 +655,7 @@ class Project():
                 if self.component_type(component) == "component":
                     components.append(component)
                 else:
-                    for c in  self.get_bundle(component):
+                    for c in self.get_bundle(component):
                         components.append(c)
 
         return components
@@ -609,23 +666,24 @@ class Project():
             self.check_hclt_file(f)
 
     def get_files(self):
-        #project_root = self.get_project_root(self.component_dir)
+        # project_root = self.get_project_root(self.component_dir)
         for (folder, fn) in flatwalk_up(self.project_root, self.component_dir):
             if fn.endswith(self.inpattern):
                 yield "{}/{}".format(folder, fn)
 
     def parse_items(self, trynum=0):
         # parse item values
-        for k,v in self.vars.items():
+        for k, v in self.vars.items():
             self.vars[k] = self.parse(v)
 
         problems = []
 
-        for k,v in self.vars.items():
-            if "${" in  v:
+        for k, v in self.vars.items():
+            if "${" in v:
                 msg = self.check_parsed_text(v)
                 if msg != "":
-                    problems.append("File {}, cannot parse value of \"{}\"".format(os.path.relpath(self.var_sources[k]), k))
+                    problems.append("File {}, cannot parse value of \"{}\"".format(
+                        os.path.relpath(self.var_sources[k]), k))
                     for line in msg.split("\n"):
                         problems.append(line)
 
@@ -637,27 +695,30 @@ class Project():
     def get_yml_vars(self):
         if self.vars == None:
             self.var_sources = {}
-            #project_root = self.get_project_root(self.component_dir)
-            self.vars={}
+            # project_root = self.get_project_root(self.component_dir)
+            self.vars = {}
             for (folder, fn) in flatwalk_up(self.project_root, self.component_dir):
                 if fn.endswith('.yml'):
 
                     with open(r'{}/{}'.format(folder, fn)) as fh:
                         d = yaml.load(fh, Loader=yaml.FullLoader)
                         if type(d) == dict:
-                            for k,v in d.items():
+                            for k, v in d.items():
                                 if type(v) in (str, int, float, dict):
                                     self.vars[k] = v
-                                    self.var_sources[k] =  '{}/{}'.format(folder, fn)
+                                    self.var_sources[k] = '{}/{}'.format(
+                                        folder, fn)
 
             # special vars
             self.vars["PROJECT_ROOT"] = self.project_root
             self.vars["COMPONENT_PATH"] = self.component_path
             self.vars["COMPONENT_DIRNAME"] = self.component_path.split("/")[-1]
             try:
-                self.vars["CLOUDICORN_INSTALL_PATH"] = os.path.dirname(os.path.abspath(os.readlink(__file__)))
+                self.vars["CLOUDICORN_INSTALL_PATH"] = os.path.dirname(
+                    os.path.abspath(os.readlink(__file__)))
             except OSError:
-                self.vars["CLOUDICORN_INSTALL_PATH"] = os.path.dirname(os.path.abspath(__file__))
+                self.vars["CLOUDICORN_INSTALL_PATH"] = os.path.dirname(
+                    os.path.abspath(__file__))
 
             problems = self.parse_items()
 
@@ -681,7 +742,7 @@ class Project():
                 args=obj,
                 dir=self.component_dir,
                 tfstate_file=self.tfstate_file,
-                tf_dir = self.tf_dir)
+                tf_dir=self.tf_dir)
 
     def setup_component_source(self):
         self.set_component_instance()
@@ -696,14 +757,14 @@ class Project():
                 continue
 
             dest = os.path.join(self.tf_dir, d[len(base)+1:])
-            
+
             if not os.path.isdir(dest):
-                #raise Exception(dest, base, d, fn, self.tf_dir)
+                # raise Exception(dest, base, d, fn, self.tf_dir)
                 os.makedirs(dest)
 
             shutil.copy(os.path.join(d, fn), dest)
 
-            #os.copy.copy(self.component_dir, self.tf_dir)
+            # os.copy.copy(self.component_dir, self.tf_dir)
 
     def setup_component_tfstore(self):
         self.set_component_instance()
@@ -716,7 +777,8 @@ class Project():
 
             if crs.is_encrypted:
                 if self.passphrases == []:
-                    raise MissingEncryptionPassphrase("Remote state for component is encrypted, you must provide a decryption passphrase")
+                    raise MissingEncryptionPassphrase(
+                        "Remote state for component is encrypted, you must provide a decryption passphrase")
                 crs.set_passphrases(self.passphrases)
                 crs.decrypt()
 
@@ -729,30 +791,34 @@ class Project():
     def get_linked_project(self, linked_project_name):
         if self.get_linked_projects():
             if linked_project_name not in self.linked_projects:
-                raise NoSuchLinkedProjectException("'{}': No such linked project".format(linked_project_name))
-                
+                raise NoSuchLinkedProjectException(
+                    "'{}': No such linked project".format(linked_project_name))
+
             if "source_instance" not in self.linked_projects[linked_project_name]:
                 source = self.linked_projects[linked_project_name]
 
                 if "repo" in source:
                     i = LinkedProjectSourceGit(args=source)
-                    targetdir = get_cloudicorn_cachedir(json.dumps(source)+linked_project_name)
+                    targetdir = get_cloudicorn_cachedir(
+                        json.dumps(source)+linked_project_name)
                     tfdir = get_cloudicorn_cachedir(json.dumps(source)+"tfdir")
 
                 elif "path" in source:
                     i = LinkedProjectSourcePath(args=source)
-                    targetdir = get_cloudicorn_cachedir(source["path"]+linked_project_name)
+                    targetdir = get_cloudicorn_cachedir(
+                        source["path"]+linked_project_name)
                     tfdir = get_cloudicorn_cachedir(source["path"]+"tfdir")
 
                 else:
-                    raise ProjectException("No handler for LinkedProjectSource")
+                    raise ProjectException(
+                        "No handler for LinkedProjectSource")
 
                 self.linked_projects[linked_project_name]["source_instance"] = i
 
                 # fetch into a dir
-                p = Project(git_filtered=False, wdir=targetdir, project_vars=self.project_vars)
+                p = Project(git_filtered=False, wdir=targetdir,
+                            project_vars=self.project_vars)
                 p.set_tf_dir(tfdir)
-
 
                 self.linked_projects[linked_project_name]["project_instance"] = p
                 i.set_targetdir(targetdir)
@@ -760,22 +826,21 @@ class Project():
 
             return self.linked_projects[linked_project_name]
 
-    # def get_linked_project_source_instance(self, name):   
+    # def get_linked_project_source_instance(self, name):
     #         return self.linked_projects[name]["source_instance"]
-        
+
     def get_linked_projects(self):
         self.get_yml_vars()
         if self.linked_projects == None:
 
             if "project_links" not in self.vars:
                 return False
-            self.linked_projects = {}        
+            self.linked_projects = {}
 
-            for k,v in self.vars["project_links"].items():
+            for k, v in self.vars["project_links"].items():
                 self.linked_projects[k] = v
 
         return True
-
 
     @property
     def component_inputs(self):
@@ -787,7 +852,7 @@ class Project():
         if "component_inputs" in obj:
             lp = self.get_linked_projects()
 
-            for k,v in obj["component_inputs"].items():
+            for k, v in obj["component_inputs"].items():
 
                 from_lp = False
                 which = None
@@ -825,9 +890,10 @@ class Project():
                     p.set_component_dir(cdir)
                     t = p.component_type(component=cdir)
                     p.save_parsed_component()
-                
-                    if t != "component":                   
-                        raise ComponentException(tfstate_file, k, v, t, cdir, p.tf_dir, lp_name, p.wdir, which)
+
+                    if t != "component":
+                        raise ComponentException(
+                            tfstate_file, k, v, t, cdir, p.tf_dir, lp_name, p.wdir, which)
                     tfstate_file = p.tfstate_file
                 else:
                     d = tempfile.mkdtemp()
@@ -835,7 +901,7 @@ class Project():
 
                     project = deepcopy(self)
                     project.git_filtered = False
-                    project.components = None # reset component cache
+                    project.components = None  # reset component cache
 
                     if ":" in v:
                         which = v.split(":")[-1]
@@ -845,13 +911,15 @@ class Project():
                     t = project.component_type(component=v)
 
                     if t != "component":
-                        raise ComponentException("component_inputs key {} = \"{}\" must point to a component".format(k, v))
+                        raise ComponentException(
+                            "component_inputs key {} = \"{}\" must point to a component".format(k, v))
 
                     project.set_tf_dir(d)
                     project.save_parsed_component()
 
                 if not os.path.isfile(tfstate_file):
-                    raise ComponentException("Missing terraform.tfstate file for component_inputs key {} = \"{}\"".format(k, v))
+                    raise ComponentException(
+                        "Missing terraform.tfstate file for component_inputs key {} = \"{}\"".format(k, v))
 
                 with open(tfstate_file, 'r') as fh:
                     tfstate = json.load(fh)
@@ -859,14 +927,15 @@ class Project():
                 try:
 
                     val = tfstate["outputs"][which]["value"]
-                    if "." in k: # key is buried in a block
+                    if "." in k:  # key is buried in a block
                         parts = k.split(".")
                         recursive_dict_set(inputs, parts, val)
                     else:
                         inputs[k] = val
                 except KeyError:
-                    #raise ComponentException(which, tfstate_file, k, v, t, cdir, p.tf_dir, lp_name, p.wdir)
-                    raise ComponentException("component_inputs {} No such output in component {}".format(which, v))
+                    # raise ComponentException(which, tfstate_file, k, v, t, cdir, p.tf_dir, lp_name, p.wdir)
+                    raise ComponentException(
+                        "component_inputs {} No such output in component {}".format(which, v))
 
         for k in cloud_cred_keys():
             if k in os.environ:
@@ -874,26 +943,25 @@ class Project():
 
         return inputs
 
-
     def save_parsed_component(self):
         self.setup_component_tfstore()
         with open(self.outfile, 'w') as fh:
             fh.write(self.hclfile)
 
     @property
-    def outfile(self): 
+    def outfile(self):
         return "{}/{}".format(self.root_wdir, "component.hcl")
 
     @property
     def component_path(self):
         abswdir = os.path.abspath(self.component_dir)
-        absroot =self.project_root
+        absroot = self.project_root
 
         return abswdir[len(absroot)+1:]
 
     @property
     def root_wdir(self):
-        tf_wdir =  self.tf_dir
+        tf_wdir = self.tf_dir
         if not os.path.isdir(tf_wdir):
             os.makedirs(tf_wdir)
 
@@ -904,20 +972,20 @@ class Project():
         for f in self.get_files():
             data = u""
             with open(f, 'r') as lines:
-                for line in lines:         
+                for line in lines:
                     data += line
                 self.templates[os.path.basename(f)] = {
                     "filename": f,
-                    "data" : data
+                    "data": data
                 }
 
     def parse(self, obj):
         if type(obj) == str:
             return self.parsetext(obj)
         elif type(obj) == dict:
-            for k,v in obj.items():
+            for k, v in obj.items():
                 obj[k] = self.parse(v)
-    
+
         return obj
 
     def parsetext(self, s):
@@ -932,7 +1000,7 @@ class Project():
                 s = s.replace('${' + k + '}', v)
 
         # ENV VARS
-        for (k, v) in  os.environ.items():
+        for (k, v) in os.environ.items():
             s = s.replace('${' + k + '}', v)
 
         return s
@@ -971,17 +1039,16 @@ class Project():
                             if ratio >= lim:
                                 near_matches[k] = ratio
 
-                        for k,ratio in near_matches.items():
+                        for k, ratio in near_matches.items():
                             msg += "\n   ==>  Perhaps you meant ${"+k+"}?"
 
                         msg += "\n"
 
-            except IndexError: # an empty line has no first character ;)
+            except IndexError:  # an empty line has no first character ;)
                 pass
 
-        #debug(msg)
+        # debug(msg)
         return msg
-
 
     def parse_component(self):
 
@@ -989,15 +1056,16 @@ class Project():
         self.get_yml_vars()
         self.get_template()
 
-        self.out_string=u""
+        self.out_string = u""
 
         self.parse_messages = []
 
-        for fn,d in self.templates.items():
+        for fn, d in self.templates.items():
             parsed = self.parsetext(d['data'])
             msg = self.check_parsed_text(parsed)
             if msg != "":
-                self.parse_messages.append("File: {}".format(os.path.relpath(d['filename'])))
+                self.parse_messages.append(
+                    "File: {}".format(os.path.relpath(d['filename'])))
                 self.parse_messages.append(msg)
 
             self.out_string += parsed
@@ -1009,7 +1077,6 @@ class Project():
             return True
 
         return "\n".join([u"Could not substitute all variables in templates 😢"] + self.parse_messages)
-        
 
     @property
     def hclfile(self):
@@ -1019,8 +1086,12 @@ class Project():
 
 class ProjectException(Exception):
     pass
+
+
 class ComponentException(Exception):
     pass
+
+
 class Component():
 
     def __init__(self, args, dir, tfstate_file, tf_dir) -> None:
@@ -1051,7 +1122,8 @@ class Component():
             cs = ComponentSourcePath(args=source)
 
         else:
-            raise ComponentException("No ComponentSource handler for component")
+            raise ComponentException(
+                "No ComponentSource handler for component")
 
         # fetch into tf_wdir
         cs.set_targetdir(self.tf_dir)
@@ -1061,16 +1133,19 @@ class Component():
     def get_tfstate_store_instance(self):
         tfstate_file = self.tfstate_file
         if "tfstate_store" not in self.args:
-            raise ComponentException("tfstate_store block specified in component")
+            raise ComponentException(
+                "tfstate_store block specified in component")
         tfstate_store = self.args["tfstate_store"]
 
         # instanciate TfStateStore
         if "bucket" in tfstate_store:
             crs = TfStateStoreAwsS3(args=tfstate_store, localpath=tfstate_file)
         elif "storage_account" in tfstate_store:
-            crs = TfStateStoreAzureStorage(args=tfstate_store, localpath=tfstate_file)
+            crs = TfStateStoreAzureStorage(
+                args=tfstate_store, localpath=tfstate_file)
         elif "path" in tfstate_store:
-            crs = TfStateStoreFilesystem(args=tfstate_store, localpath=tfstate_file)
+            crs = TfStateStoreFilesystem(
+                args=tfstate_store, localpath=tfstate_file)
         else:
             raise ComponentException("No TfStateStore handler for component")
 
@@ -1081,7 +1156,8 @@ class Component():
         if self.outputs == None:
 
             if not os.path.isfile(self.tfstate_file):
-                raise ComponentException("Cannot read tfstate for component, {} : no such file".format(self.tfstate_file))
+                raise ComponentException(
+                    "Cannot read tfstate for component, {} : no such file".format(self.tfstate_file))
 
             with open(self.tfstate_file, 'r') as fh:
                 o = json.load(fh)
@@ -1092,7 +1168,8 @@ class Component():
         self.get_outputs()
 
         if k not in self.outputs:
-            raise ComponentException("{}: No such output for component".format(k))
+            raise ComponentException(
+                "{}: No such output for component".format(k))
 
         return self.outputs[k]["value"]
 
@@ -1105,13 +1182,11 @@ class ComponentSourceException(Exception):
     pass
 
 
-
-
 class ComponentSource():
     def __init__(self, args) -> None:
         self.args = args
 
-    def set_targetdir(self,targetdir ):
+    def set_targetdir(self, targetdir):
         if not os.path.isdir(targetdir):
             os.makedirs(targetdir)
 
@@ -1119,34 +1194,35 @@ class ComponentSource():
 
     def fetch(self):
         raise ComponentSourceException("not implemented here")
-    
+
     @property
     def tdir(self):
         return self.targetdir
-
 
 
 class ComponentSourceNull(ComponentSource):
     def fetch(self):
         pass
 
+
 class ComponentSourcePath(ComponentSource):
-    
+
     def fetch(self):
         if "path" not in self.args:
-             raise ComponentSourceException("path not present in source block")
-        
+            raise ComponentSourceException("path not present in source block")
+
         if not os.path.isdir(self.args["path"]):
-             raise ComponentSourceException("No such directory: {}".format(self.args["path"]))
+            raise ComponentSourceException(
+                "No such directory: {}".format(self.args["path"]))
 
         shutil.copytree(self.args["path"], self.targetdir, dirs_exist_ok=True)
-    
+
 
 class ComponentSourceGit(ComponentSource):
     def fetch(self):
         if "repo" not in self.args:
-             raise ComponentSourceException("repo not present in source block")
-        
+            raise ComponentSourceException("repo not present in source block")
+
         t = tempfile.mkdtemp()
 
         try:
@@ -1169,35 +1245,42 @@ class ComponentSourceGit(ComponentSource):
                             break
 
                     if not found:
-                        raise ComponentSourceException("Error cloning git repo {}, no tag matching {}, repo contains these tags: {}".format(self.args["repo"], self.args["tag"], ", ".join(tags)))
+                        raise ComponentSourceException("Error cloning git repo {}, no tag matching {}, repo contains these tags: {}".format(
+                            self.args["repo"], self.args["tag"], ", ".join(tags)))
 
                 else:
-                    Repo.clone_from(self.args["repo"], t, branch=self.args["tag"], depth=1)
+                    Repo.clone_from(
+                        self.args["repo"], t, branch=self.args["tag"], depth=1)
             elif "branch" in self.args:
-                Repo.clone_from(self.args["repo"], t, branch=self.args["branch"], depth=1)
+                Repo.clone_from(self.args["repo"], t,
+                                branch=self.args["branch"], depth=1)
             else:
                 Repo.clone_from(self.args["repo"], t, depth=1)
-            
+
         except Exception:
             shutil.rmtree(t)
-            raise ComponentSourceException("Error cloning git repo {}".format(self.args["repo"]))
-        
+            raise ComponentSourceException(
+                "Error cloning git repo {}".format(self.args["repo"]))
+
         if "path" in self.args:
 
             subdir = "{}/{}".format(t, self.args["path"])
             if not os.path.isdir(subdir):
                 shutil.rmtree(t)
-                raise ComponentSourceException("No such path {} in repo: {}".format(self.args["path"], self.args["repo"]))
+                raise ComponentSourceException("No such path {} in repo: {}".format(
+                    self.args["path"], self.args["repo"]))
 
             shutil.copytree(subdir, self.targetdir, dirs_exist_ok=True)
 
         else:
             shutil.copytree(t, self.targetdir, dirs_exist_ok=True)
-    
+
         shutil.rmtree(t)
+
 
 class LinkedProjectSourcePath(ComponentSourcePath):
     pass
+
 
 class LinkedProjectSourceGit(ComponentSourceGit):
     pass
@@ -1211,10 +1294,10 @@ class LinkedProjectSourceGit(ComponentSourceGit):
 #         if component not in self.components.values():
 #             # implement here
 #             pass
-  
+
 #     def value(self, component, key):
 #         self.load(component)
-        
+
 #         try:
 #             value = self.components[component][key]["value"]
 #         except KeyError:
@@ -1222,6 +1305,7 @@ class LinkedProjectSourceGit(ComponentSourceGit):
 #             raise RemoteStateKeyNotFound(msg)
 
 #         return value
+
 
 class TfStateStore():
 
@@ -1231,20 +1315,23 @@ class TfStateStore():
         self.passphrases = []
         self.fetched = False
 
-        unpad = lambda s: s[:-ord(s[len(s) - 1:])]
- 
+        def unpad(s): return s[:-ord(s[len(s) - 1:])]
+
     def set_passphrases(self, passphrases=[]):
         self.passphrases = passphrases
-    
+
     def encrypt(self) -> bool:
         if self.passphrases == []:
             raise Exception("No passphrase given")
-            
+
         with open(self.localpath, 'r') as fh:
             content = fh.read()
-    
-        private_key = hashlib.sha256(self.passphrases[0].encode("utf-8")).digest()
-        pad = lambda s: s + (AES.block_size - len(s) % AES.block_size) * chr(AES.block_size - len(s) % AES.block_size)
+
+        private_key = hashlib.sha256(
+            self.passphrases[0].encode("utf-8")).digest()
+
+        def pad(s): return s + (AES.block_size - len(s) %
+                                AES.block_size) * chr(AES.block_size - len(s) % AES.block_size)
         padded = pad(content)
         iv = get_random_bytes(AES.block_size)
         cipher = AES.new(private_key, AES.MODE_CBC, iv)
@@ -1255,17 +1342,17 @@ class TfStateStore():
             json.dump({
                 'ciphertext':  b64encode(ciphertext).decode('utf-8'),
                 'iv': b64encode(iv).decode('utf-8')}, fh)
-        
+
         return True
 
     def decrypt(self) -> bool:
         if self.passphrases == []:
             raise Exception("No passphrase given")
-        
+
         with open(self.localpath, 'r') as fh:
             obj = json.load(fh)
 
-        unpad = lambda s: s[:-ord(s[len(s) - 1:])]
+        def unpad(s): return s[:-ord(s[len(s) - 1:])]
 
         iv = b64decode(obj['iv'])
         ciphertext = b64decode(obj['ciphertext'])
@@ -1289,7 +1376,6 @@ class TfStateStore():
                     continue
 
         raise WrongPasswordException("Wrong decryption passphrase")
-            
 
     @property
     def is_encrypted(self):
@@ -1304,16 +1390,17 @@ class TfStateStore():
             pass
 
         return False
-    
+
     def push(self):
         raise Exception("not implemented here")
 
     def fetch(self):
         raise Exception("not implemented here")
-    
+
     @property
     def localpath_exists(self):
         return os.path.isfile(self.localpath)
+
 
 class TfStateStoreAwsS3(TfStateStore):
     s3_client = boto3.client('s3')
@@ -1324,7 +1411,8 @@ class TfStateStoreAwsS3(TfStateStore):
         bucket = self.args["bucket"]
         bucket_path = self.args["bucket_path"]
         try:
-            response = self.s3_client.upload_file(self.localpath, bucket, "{}/terraform.tfvars".format(bucket_path))
+            response = self.s3_client.upload_file(
+                self.localpath, bucket, "{}/terraform.tfvars".format(bucket_path))
         except ClientError as e:
             debug(e)
             return False
@@ -1333,10 +1421,11 @@ class TfStateStoreAwsS3(TfStateStore):
     def fetch(self):
         bucket = self.args["bucket"]
         bucket_path = self.args["bucket_path"]
-    
+
         try:
             with open(self.localpath, 'wb') as fh:
-                self.s3_client.download_fileobj(bucket, '{}/terraform.tfvars'.format(bucket_path), fh)
+                self.s3_client.download_fileobj(
+                    bucket, '{}/terraform.tfvars'.format(bucket_path), fh)
         except botocore.exceptions.ClientError as e:
             if e.response['Error']['Code'] == "404":
                 # tfstate is not found, touch a fresh one locally
@@ -1346,8 +1435,8 @@ class TfStateStoreAwsS3(TfStateStore):
                 raise
             else:
                 # Something else has gone wrong.
-                raise 
-    
+                raise
+
         self.fetched = True
 
 
@@ -1363,7 +1452,6 @@ class AzureUtils():
         if self.creds == None:
             self.creds = EnvironmentCredential()
 
-
         return self.creds
 
     @property
@@ -1373,34 +1461,34 @@ class AzureUtils():
     @property
     def resource_client(self):
         if self.rmc == None:
-            self.rmc = ResourceManagementClient(self.credential,  self.subscription_id)
-
+            self.rmc = ResourceManagementClient(
+                self.credential,  self.subscription_id)
 
         return self.rmc
 
     @property
     def storage_management_client(self):
         if self.smc == None:
-            self.smc = StorageManagementClient(self.credential,  self.subscription_id)
-
+            self.smc = StorageManagementClient(
+                self.credential,  self.subscription_id)
 
         return self.smc
 
     def get_storage_account(self, name):
-        resourcelist=self.resource_client.resource_groups.list()
+        resourcelist = self.resource_client.resource_groups.list()
         for rg in resourcelist:
-            for  res  in  self.resource_client.resources.list_by_resource_group(rg.name):
-                if(res.type=='Microsoft.Storage/storageAccounts'):
+            for res in self.resource_client.resources.list_by_resource_group(rg.name):
+                if (res.type == 'Microsoft.Storage/storageAccounts'):
                     if res.name == name:
                         return (rg.name, res.name)
-                    
+
     def get_storage_account_key(self, name):
         (rg, name) = self.get_storage_account(name)
 
-        keys = self.storage_management_client.storage_accounts.list_keys(rg,  name)
+        keys = self.storage_management_client.storage_accounts.list_keys(
+            rg,  name)
 
         return keys.keys[0].value
-
 
     def generate_sas_token(self, storage_account_name, container, blob_path, valid_hours=1):
         account_key = self.get_storage_account_key(storage_account_name)
@@ -1413,7 +1501,6 @@ class AzureUtils():
             expiry=datetime.utcnow() + timedelta(hours=valid_hours),
         )
         return token
-
 
 
 class TfStateStoreAzureStorage(TfStateStore):
@@ -1432,7 +1519,8 @@ class TfStateStoreAzureStorage(TfStateStore):
             container = self.args["container"]
             blob_path = '{}/terraform.tfvars'.format(container_path)
 
-            self.token = self.azure_utils.generate_sas_token(account, container, blob_path)
+            self.token = self.azure_utils.generate_sas_token(
+                account, container, blob_path)
 
         return self.token
 
@@ -1443,7 +1531,8 @@ class TfStateStoreAzureStorage(TfStateStore):
         container_path = self.args["container_path"]
         blob_path = '{}/terraform.tfvars'.format(container_path)
 
-        blob_service_client = BlobServiceClient(account_url=account_url, credential=self.sas_token)
+        blob_service_client = BlobServiceClient(
+            account_url=account_url, credential=self.sas_token)
         container_name = self.args["container"]
         return blob_service_client.get_blob_client(container=container_name, blob=blob_path)
 
@@ -1452,7 +1541,8 @@ class TfStateStoreAzureStorage(TfStateStore):
 
         blob_client = self.az_blob_client
         try:
-            downloader = blob_client.download_blob(max_concurrency=1, encoding='UTF-8')
+            downloader = blob_client.download_blob(
+                max_concurrency=1, encoding='UTF-8')
             blob_text = downloader.readall()
 
             with open(self.localpath, 'w') as fh:
@@ -1486,7 +1576,7 @@ class TfStateStoreFilesystem(TfStateStore):
 
         if not os.path.isdir(os.path.dirname(tf_path)):
             os.makedirs(os.path.dirname(tf_path))
-        
+
         shutil.copy(self.localpath, tf_path)
 
     def fetch(self):
@@ -1494,6 +1584,7 @@ class TfStateStoreFilesystem(TfStateStore):
 
         if os.path.isfile(tf_path):
             shutil.copy(tf_path, self.localpath)
+
 
 class Utils():
 
@@ -1507,24 +1598,23 @@ class Utils():
             w = int(columns) - 5
 
         with open(filename, "wb") as f:
-           response = requests.get(url, stream=True)
-           total_length = response.headers.get('content-length')
+            response = requests.get(url, stream=True)
+            total_length = response.headers.get('content-length')
 
-           if total_length is None: # no content length header
-               f.write(response.content)
-           else:
-               dl = 0
-               total_length = int(total_length)
-               for data in response.iter_content(chunk_size=4096):
-                   dl += len(data)
-                   f.write(data)
-                   done = int(w * dl / total_length)
-                   sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (w-done)) )    
-                   sys.stdout.flush()
+            if total_length is None:  # no content length header
+                f.write(response.content)
+            else:
+                dl = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    dl += len(data)
+                    f.write(data)
+                    done = int(w * dl / total_length)
+                    sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (w-done)))
+                    sys.stdout.flush()
 
         print("")
 
-        
     def __init__(self, terraform_path=None):
         self.terraform_v = None
 
@@ -1551,15 +1641,14 @@ class Utils():
         if not os.path.isdir(self.conf_dir):
             os.makedirs(self.conf_dir)
 
-
-
     def terraform_currentversion(self):
         if self.terraform_v == None:
-            r = requests.get("https://releases.hashicorp.com/terraform/index.json")  
+            r = requests.get(
+                "https://releases.hashicorp.com/terraform/index.json")
             obj = json.loads(r.content)
             versions = []
             for k in obj['versions'].keys():
-                a,b,c = k.split('.')
+                a, b, c = k.split('.')
 
                 try:
                     v1 = "{:05}".format(int(a))
@@ -1571,12 +1660,13 @@ class Utils():
                     # this excludes, rc, alpha, beta versions
                     continue
 
-            versions.sort() # newest will be at the end
+            versions.sort()  # newest will be at the end
             v1, v2, v3 = versions.pop(-1).split(".")
 
             latest = "{}.{}.{}".format(int(v1), int(v2), int(v3))
 
-            url = "https://releases.hashicorp.com/terraform/{}/terraform_{}_linux_amd64.zip".format(latest, latest)
+            url = "https://releases.hashicorp.com/terraform/{}/terraform_{}_linux_amd64.zip".format(
+                latest, latest)
 
             self.terraform_v = (latest, url)
 
@@ -1599,20 +1689,21 @@ class Utils():
                 log("Updating terraform")
                 self.install_terraform()
 
-
     def install_terraform(self, version=None):
         currentver, url = self.terraform_currentversion()
         if version == None:
             version = currentver
 
-        log("Downloading terraform {} to {}...".format(version, self.terraform_path))
+        log("Downloading terraform {} to {}...".format(
+            version, self.terraform_path))
         Utils.download_progress(url, self.terraform_path+".zip")
 
         with zipfile.ZipFile(self.terraform_path+".zip", 'r') as zip_ref:
-            zip_ref.extract("terraform", os.path.abspath('{}/../'.format(self.terraform_path) ))
-            
-        os.chmod(self.terraform_path, 500) # make executable
-        os.unlink(self.terraform_path+".zip") # delete zip
+            zip_ref.extract("terraform", os.path.abspath(
+                '{}/../'.format(self.terraform_path)))
+
+        os.chmod(self.terraform_path, 500)  # make executable
+        os.unlink(self.terraform_path+".zip")  # delete zip
 
     def check_setup(self, verbose=True, updates=True):
         missing = []
@@ -1637,7 +1728,7 @@ class Utils():
     def autocheck(self, hours=8):
         check_file = "{}/autocheck_timestamp".format(self.conf_dir)
         if not os.path.isfile(check_file):
-            diff = hours*60*60 # 8 hours
+            diff = hours*60*60  # 8 hours
         else:
             last_check = int(os.stat(check_file).st_mtime)
             diff = int(time.time() - last_check)
@@ -1665,9 +1756,7 @@ class Utils():
             not see the prompt immediately. 
             '''
             with open(check_file, "w") as fh:
-                pass # check again in 8 hours
-            
-
+                pass  # check again in 8 hours
 
     def setup(self, args):
         debug("setup")
@@ -1700,26 +1789,33 @@ class Utils():
                 "alias cloudi_gf='export CLOUDICORN_GIT_FILTER=true'",
                 "alias cloudi_gfn='export CLOUDICORN_GIT_FILTER=false'")
 
-            with open(os.path.expanduser('~/.bashrc'), "a") as fh:  
+            with open(os.path.expanduser('~/.bashrc'), "a") as fh:
                 for l in lines:
                     l = "{}\n".format(l)
                     if l not in bashrc:
                         fh.write(l)
             log("SETUP SHELL: OK")
 
+
 class NoSuchLinkedProjectException(Exception):
     pass
+
+
 class MissingCredsException(Exception):
     pass
+
 
 def aws_sts_cred_keys():
     return ("AWS_REGION", "AWS_ROLE_ARN", "AWS_ROLE_SESSION_NAME", "AWS_SESSION_TOKEN")
 
+
 def aws_cred_keys():
     return ("AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
 
+
 def azurerm_sp_cred_keys():
     return ("AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID")
+
 
 def cloud_cred_keys():
     return list(set(aws_sts_cred_keys() + azurerm_sp_cred_keys() + aws_cred_keys()))
@@ -1727,14 +1823,16 @@ def cloud_cred_keys():
 
 def aws_test_creds():
     sts = boto3.client('sts',
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY", "")
-    )
+                       aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID", ""),
+                       aws_secret_access_key=os.getenv(
+                           "AWS_SECRET_ACCESS_KEY", "")
+                       )
     try:
         sts.get_caller_identity()
         return True
     except:
         return False
+
 
 def assert_env_vars(required):
     missing = []
@@ -1745,26 +1843,28 @@ def assert_env_vars(required):
 
     if len(missing) == 0:
         return True
-    
+
     return missing
+
 
 def assert_aws_creds():
 
     if assert_env_vars(aws_sts_cred_keys()) == True:
         return True
-    
+
     asserted = assert_env_vars(aws_cred_keys())
 
     if asserted == True:
         return True
-        
-    raise MissingCredsException("Missing credentials in env vars: {}".format(", ".join(asserted)))
-    
+
+    raise MissingCredsException(
+        "Missing credentials in env vars: {}".format(", ".join(asserted)))
+
 
 def assert_azurerm_sp_creds():
     asserted = assert_env_vars(azurerm_sp_cred_keys())
     if asserted == True:
         return True
-        
-    raise MissingCredsException("Missing credentials in env vars: {}".format(", ".join(asserted)))
-  
+
+    raise MissingCredsException(
+        "Missing credentials in env vars: {}".format(", ".join(asserted)))
