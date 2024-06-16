@@ -1,5 +1,5 @@
 source {
-	repo = "https://github.com/jumidev/terraform-modules-azure.git"
+	repo = "https://github.com/jumidev/cloudicorn-testmodules-azure.git"
 	path = "infra/application_security_group"
 }
 

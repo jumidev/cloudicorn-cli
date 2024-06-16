@@ -1,5 +1,5 @@
 source {
-	repo = "https://github.com/jumidev/terraform-modules-aws.git"
+	repo = "https://github.com/jumidev/cloudicorn-testmodules-aws.git"
 	path = "network/subnet"
 }
 
