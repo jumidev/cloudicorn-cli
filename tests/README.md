@@ -6,6 +6,15 @@ cloudicorn tests use standard python unit test cases, to run them, simply do
 make test
 ```
 
+# setup for AWS tests
+
+TODO
+
+# setup for Azure tests
+
+
+
+
 There is also a dockerfile at the root of this project that can be used to run the tests in docker.
 
 ```

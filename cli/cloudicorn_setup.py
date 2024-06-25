@@ -674,8 +674,10 @@ def main(argv=[]):
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--debug', action='store_true',
                         help='display debug messages')
-    parser.add_argument('--install', action='store_true',
+    parser.add_argument('--install-terraform', action='store_true',
                         help='install / upgrade terraform')
+    parser.add_argument('--install-opentofu', action='store_true',
+                        help='install / upgrade opentofu')
     args = parser.parse_args(args=argv)
 
     if args.debug or os.getenv('CLOUDICORN_DEBUG', 'n')[0].lower() in ['y', 't', '1']:
@@ -689,6 +691,7 @@ def main(argv=[]):
             "text": "Current working directory is {}\nSelect from the following options".format(os.path.abspath(os.getcwd())),
             "items": [
                 ("terraform", "Install/upgrade terraform"),
+                ("opentofu", "Install/upgrade opentofu"),
                 (None, "Exit")
 
             ]
@@ -740,8 +743,10 @@ def main(argv=[]):
         else:
             menuvalues.insert(0, ('new_project', 'New Project'))
 
-        if args.install:
+        if args.install_terraform:
             result = "terraform"
+        elif args.install_opentofu:
+            result = "opentofu"
         else:
             result = radiolist_dialog(
                 values=menuvalues,
@@ -758,10 +763,13 @@ def main(argv=[]):
         if result == 'new_project':
 
             proj.tui()
+        if result == "opentofu":
+            missing, outdated = u.check_setup_opentofu()
+
 
         if result == "terraform":
             try:
-                missing, outdated = u.check_setup()
+                missing, outdated = u.check_setup_tf()
                 u.terraform_currentversion()
                 if result in missing:
                     u.install_terraform()

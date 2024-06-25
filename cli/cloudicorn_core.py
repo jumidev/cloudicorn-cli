@@ -1615,7 +1615,7 @@ class Utils():
 
         print("")
 
-    def __init__(self, terraform_path=None):
+    def __init__(self, terraform_path=None, opentofu_path=None):
         self.terraform_v = None
 
         conf_file = "{}/config.hcl".format(self.conf_dir)
@@ -1637,6 +1637,15 @@ class Utils():
                 os.makedirs(self.bin_dir)
 
         self.terraform_path = terraform_path
+
+        if opentofu_path == None:
+            opentofu_path = os.getenv("OPENTOFU_BIN", None)
+        if opentofu_path == None:
+            opentofu_path = "{}/tofu".format(self.bin_dir)
+            if not os.path.isdir(self.bin_dir):
+                os.makedirs(self.bin_dir)
+
+        self.opentofu_path = opentofu_path
 
         if not os.path.isdir(self.conf_dir):
             os.makedirs(self.conf_dir)
@@ -1674,7 +1683,7 @@ class Utils():
 
     def install(self, update=True):
         debug("install")
-        missing, outofdate = self.check_setup(verbose=False, updates=True)
+        missing, outofdate = self.check_setup_tf(verbose=False, updates=True)
 
         debug("missing={}".format(missing))
         debug("outofdate={}".format(outofdate))
@@ -1705,7 +1714,19 @@ class Utils():
         os.chmod(self.terraform_path, 500)  # make executable
         os.unlink(self.terraform_path+".zip")  # delete zip
 
-    def check_setup(self, verbose=True, updates=True):
+    def check_setup_opentofu(self, verbose=True, updates=True):
+        missing = []
+        outofdate = []
+        debug(self.opentofu_path)
+        out, err, retcode = run("{} --version".format(self.opentofu_path))
+        if retcode == 127:
+            missing.append("opentofu")
+            if verbose:
+                log("opentofu not installed, you can download it from https://opentofu.org")
+
+        return (missing, outofdate)
+
+    def check_setup_tf(self, verbose=True, updates=True):
         missing = []
         outofdate = []
         debug(self.terraform_path)
@@ -1745,7 +1766,7 @@ class Utils():
         else:
             debug("last check {} hours ago".format(float(diff)/3600))
 
-        missing, outdated = self.check_setup(verbose=True, updates=updates)
+        missing, outdated = self.check_setup_tf(verbose=True, updates=updates)
         if len(missing) > 0:
             return -1
 
@@ -1764,8 +1785,8 @@ class Utils():
         if args.setup:
             self.install()
 
-        if args.check_setup:
-            missing, outdated = self.check_setup()
+        if args.check_setup_tf:
+            missing, outdated = self.check_setup_tf()
 
             if len(missing) > 0:
                 log("CHECK SETUP: MISSING {}".format(", ".join(missing)))
