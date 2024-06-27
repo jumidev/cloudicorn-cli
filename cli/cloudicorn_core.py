@@ -244,6 +244,8 @@ def clean_cache(d, olderthan_days=30):
 
 
 def dir_is_git_repo(dir):
+    if not os.path.isdir(dir):
+        return False
     try:
         repo = Repo(dir)
         return True
@@ -1116,6 +1118,7 @@ class Component():
             cs = ComponentSourceNull(args=source)
 
         elif "repo" in source:
+
             cs = ComponentSourceGit(args=source)
 
         elif "path" in source:
@@ -1223,59 +1226,71 @@ class ComponentSourceGit(ComponentSource):
         if "repo" not in self.args:
             raise ComponentSourceException("repo not present in source block")
 
-        t = tempfile.mkdtemp()
+        if dir_is_git_repo(self.args["repo"]):
+            # local path was provided, handy for local testing without commit/push
+            subdir = self.args["repo"]
+            if "path" in self.args:
 
-        try:
-            if "tag" in self.args:
-                if "*" in self.args["tag"]:
-                    repo = Repo.clone_from(self.args["repo"], t)
-                    tag = self.args["tag"].replace("*", "")
-
-                    found = False
-                    tags = []
-
-                    for T in repo.tags:
-                        tags.append(str(T))
-
-                    tags.sort(reverse=True)
-                    for T in tags:
-                        if tag in str(T):
-                            repo.git.checkout(T)
-                            found = True
-                            break
-
-                    if not found:
-                        raise ComponentSourceException("Error cloning git repo {}, no tag matching {}, repo contains these tags: {}".format(
-                            self.args["repo"], self.args["tag"], ", ".join(tags)))
-
-                else:
-                    Repo.clone_from(
-                        self.args["repo"], t, branch=self.args["tag"], depth=1)
-            elif "branch" in self.args:
-                Repo.clone_from(self.args["repo"], t,
-                                branch=self.args["branch"], depth=1)
-            else:
-                Repo.clone_from(self.args["repo"], t, depth=1)
-
-        except Exception:
-            shutil.rmtree(t)
-            raise ComponentSourceException(
-                "Error cloning git repo {}".format(self.args["repo"]))
-
-        if "path" in self.args:
-
-            subdir = "{}/{}".format(t, self.args["path"])
-            if not os.path.isdir(subdir):
-                shutil.rmtree(t)
-                raise ComponentSourceException("No such path {} in repo: {}".format(
-                    self.args["path"], self.args["repo"]))
+                subdir = "{}/{}".format(subdir, self.args["path"])
+                if not os.path.isdir(subdir):
+                    raise ComponentSourceException("No such path {} in repo: {}".format(
+                        self.args["path"], self.args["repo"]))
 
             shutil.copytree(subdir, self.targetdir, dirs_exist_ok=True)
 
         else:
-            shutil.copytree(t, self.targetdir, dirs_exist_ok=True)
+            t = tempfile.mkdtemp()
+            try:
+                if "tag" in self.args:
+                    if "*" in self.args["tag"]:
+                        repo = Repo.clone_from(self.args["repo"], t)
+                        tag = self.args["tag"].replace("*", "")
 
-        shutil.rmtree(t)
+                        found = False
+                        tags = []
+
+                        for T in repo.tags:
+                            tags.append(str(T))
+
+                        tags.sort(reverse=True)
+                        for T in tags:
+                            if tag in str(T):
+                                repo.git.checkout(T)
+                                found = True
+                                break
+
+                        if not found:
+                            raise ComponentSourceException("Error cloning git repo {}, no tag matching {}, repo contains these tags: {}".format(
+                                self.args["repo"], self.args["tag"], ", ".join(tags)))
+
+                    else:
+                        Repo.clone_from(
+                            self.args["repo"], t, branch=self.args["tag"], depth=1)
+                elif "branch" in self.args:
+                    Repo.clone_from(self.args["repo"], t,
+                                    branch=self.args["branch"], depth=1)
+                else:
+                    Repo.clone_from(self.args["repo"], t, depth=1)
+
+            except Exception:
+                shutil.rmtree(t)
+                raise ComponentSourceException(
+                    "Error cloning git repo {}".format(self.args["repo"]))
+
+            if "path" in self.args:
+
+                subdir = "{}/{}".format(t, self.args["path"])
+                if not os.path.isdir(subdir):
+                    shutil.rmtree(t)
+                    raise ComponentSourceException("No such path {} in repo: {}".format(
+                        self.args["path"], self.args["repo"]))
+
+                shutil.copytree(subdir, self.targetdir, dirs_exist_ok=True)
+
+            else:
+                shutil.copytree(t, self.targetdir, dirs_exist_ok=True)
+
+            shutil.rmtree(t)
 
 
 class LinkedProjectSourcePath(ComponentSourcePath):
