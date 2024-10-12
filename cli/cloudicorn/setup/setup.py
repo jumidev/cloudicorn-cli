@@ -10,7 +10,7 @@ import sys
 import yaml
 import os
 
-from cloudicorn.core import log, Utils, assert_aws_creds, assert_azurerm_sp_creds, azurerm_sp_cred_keys, aws_cred_keys, aws_test_creds
+from cloudicorn.core import log, Utils, check_cloud_extension
 from cloudicorn.core import git_rootdir, run, HclParseException, get_random_string
 from git import Repo
 from pathlib import Path
@@ -21,7 +21,8 @@ import shutil
 import argparse
 import hcl
 
-import boto3
+if check_cloud_extension("aws"):
+    import boto3
 
 PACKAGE = "cloudicorn_setup"
 LOG = True
@@ -545,7 +546,7 @@ class SetupCreds():
             "text": "Select from the following cloud providers",
             "items": [
                 ("aws", "AWS"),
-                ("azure", "Azure"),
+                ("azurerm", "Azure RM"),
                 ("gcp", "GCP"),
                 (None, "Done")
 
@@ -562,6 +563,12 @@ class SetupCreds():
 
         # aws creds
         aws = False
+        if check_cloud_extension("aws"):
+            from cloudicorn.aws import assert_aws_creds, aws_cred_keys, aws_test_creds
+        
+        if check_cloud_extension("azurerm"):
+            from cloudicorn.azurerm import assert_azurerm_sp_creds, azurerm_sp_cred_keys
+
         try:
             aws = assert_aws_creds()
         except:
@@ -599,6 +606,12 @@ class SetupCreds():
 
             creds = {}
 
+            if not check_cloud_extension(result):
+                message_dialog(
+                    title='Missing Package',
+                    text='It looks like cloudicorn.{} is not installed.\nPlease install this package and try again'.format(result)).run()
+                return
+
             if result == "aws":
                 for k in aws_cred_keys():
                     v = input_dialog(
@@ -622,7 +635,7 @@ class SetupCreds():
                             continue
                         return
 
-            if result == "azure":
+            if result == "azurerm":
                 for k in azurerm_sp_cred_keys():
                     v = input_dialog(
                         title=k,
@@ -709,14 +722,19 @@ def main(argv=[]):
             # aws creds
             aws = False
             try:
-                aws = assert_aws_creds()
+                if check_cloud_extension("aws"):
+                    from cloudicorn.aws import assert_aws_creds
+                    aws = assert_aws_creds()
             except:
                 pass
 
             # azure creds
             azure = False
             try:
-                azure = assert_azurerm_sp_creds()
+                if check_cloud_extension("azurerm"):
+                    from cloudicorn.azurerm import assert_azurerm_sp_creds
+
+                    azure = assert_azurerm_sp_creds()
             except:
                 pass
 

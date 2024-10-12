@@ -35,6 +35,29 @@ LOG = True
 DEBUG = False
 
 
+def check_cloud_extension(which):
+    if which == "aws":
+        try:
+            import cloudicorn_aws
+            return True
+        except ImportError:
+            return False
+
+    if which == "azurerm":
+        try:
+            import cloudicorn_azurerm
+            return True
+        except ImportError:
+            return False
+
+    if which == "gcp":
+        try:
+            import cloudicorn_gcp
+            return True
+        except ImportError:
+            return False
+        
+
 def get_cloudicorn_cachedir(salt, cleanup=True):
     current_date_slug = datetime.today().strftime('%Y-%m-%d')
 
@@ -1131,8 +1154,10 @@ class Component():
 
         # instanciate TfStateStore
         if "bucket" in tfstate_store:
+            from cloudicorn_aws import TfStateStoreAwsS3
             crs = TfStateStoreAwsS3(args=tfstate_store, localpath=tfstate_file)
         elif "storage_account" in tfstate_store:
+            from cloudicorn_azurerm import TfStateStoreAzureStorage
             crs = TfStateStoreAzureStorage(
                 args=tfstate_store, localpath=tfstate_file)
         elif "path" in tfstate_store:
@@ -1645,16 +1670,18 @@ class NoSuchLinkedProjectException(Exception):
 class MissingCredsException(Exception):
     pass
 
-
-
-
-
 def cloud_cred_keys():
-    return list(set(aws_sts_cred_keys() + azurerm_sp_cred_keys() + aws_cred_keys()))
+    l = []
+    if check_cloud_extension("aws"):
+        from cloudicorn_aws import aws_sts_cred_keys, aws_cred_keys
+        l.append(aws_sts_cred_keys())
+        l.append(aws_cred_keys())
 
+    if check_cloud_extension("azurerm"):
+        from cloudicorn_azurerm import azurerm_sp_cred_keys
+        l.append(azurerm_sp_cred_keys())
 
-
-
+    return list(set(l))
 
 def assert_env_vars(required):
     missing = []

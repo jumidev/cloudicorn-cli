@@ -3,7 +3,7 @@
 import os
 from datetime import datetime, timedelta
 
-from cloudicorn_core import TfStateStore, assert_env_vars, MissingCredsException
+from cloudicorn.core import TfStateStore, assert_env_vars, MissingCredsException
 
 
 import boto3
