@@ -4,8 +4,8 @@
 import os, sys, hcl, tempfile, json
 import unittest
 import cloudicorn
-from cloudicorn.core import Project, TfStateStoreAwsS3
-from cloudicorn.core import assert_aws_creds, get_random_string
+from cloudicorn.core import Project, get_random_string
+from cloudicorn_aws import assert_aws_creds, TfStateStoreAwsS3
 import random
 import string
 

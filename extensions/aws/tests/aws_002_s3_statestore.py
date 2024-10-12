@@ -3,8 +3,8 @@
 
 import os, sys, shutil
 import unittest
-from cloudicorn.core import Project, TfStateStoreAwsS3, WrongPasswordException
-from cloudicorn.core import assert_aws_creds, get_random_string
+from cloudicorn.core import Project, WrongPasswordException, get_random_string
+from cloudicorn_aws import assert_aws_creds, TfStateStoreAwsS3
 import hcl, tempfile, datetime
 from pathlib import Path
 import random

@@ -3,8 +3,8 @@
 import os
 from datetime import datetime, timedelta
 
-from cloudicorn.core import TfStateStore, assert_env_vars, MissingCredsException
-
+from cloudicorn.core import TfStateStore, assert_env_vars, MissingCredsException, debug
+from pathlib import Path
 
 import boto3
 from botocore.exceptions import ClientError
