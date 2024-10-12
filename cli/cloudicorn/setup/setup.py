@@ -10,8 +10,8 @@ import sys
 import yaml
 import os
 
-from cloudicorn_core import log, Utils, assert_aws_creds, assert_azurerm_sp_creds, azurerm_sp_cred_keys, aws_cred_keys, aws_test_creds
-from cloudicorn_core import git_rootdir, run, HclParseException, get_random_string
+from cloudicorn.core import log, Utils, assert_aws_creds, assert_azurerm_sp_creds, azurerm_sp_cred_keys, aws_cred_keys, aws_test_creds
+from cloudicorn.core import git_rootdir, run, HclParseException, get_random_string
 from git import Repo
 from pathlib import Path
 import re

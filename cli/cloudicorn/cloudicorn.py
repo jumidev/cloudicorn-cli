@@ -6,9 +6,8 @@ import os
 import sys
 import argparse
 from pyfiglet import Figlet
-import cloudicorn_core
-from cloudicorn_core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, get_cloudicorn_cachedir
-from cloudicorn_core import Utils, Project, WrapTerraform
+from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, get_cloudicorn_cachedir, TerraformException
+from cloudicorn.core import Utils, Project, WrapTerraform
 
 PACKAGE = "cloudicorn"
 LOG = True
@@ -271,7 +270,7 @@ def main(argv=[]):
 
                     exitcode = runshow(cmd, cwd=project.tf_dir)
                     if exitcode != 0:
-                        raise cloudicorn_core.TerraformException(
+                        raise TerraformException(
                             "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
                     # requested command
@@ -294,7 +293,7 @@ def main(argv=[]):
                     # save tfstate
                     crs.push()
                     if exitcode != 0:
-                        raise cloudicorn_core.TerraformException(
+                        raise TerraformException(
                             "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
                     return 0

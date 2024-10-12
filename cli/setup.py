@@ -4,7 +4,7 @@
 
 import setuptools
 import re
-from setuptools import setup
+from setuptools import setup, find_packages
 
 url = 'https://github.com/jumidev/cloudicorn-cli'
 
@@ -26,29 +26,23 @@ for matchNum, match in enumerate(matches, start=1):
 with open("requirements.txt", "r") as fh:
     install_requires = fh.readlines()
 
-setup(name='cloudicorn-cli',
-      version='0.3',
-      description='Taking Infrastructure As Code to the next level',
-      long_description=long_description,
-      long_description_content_type="text/markdown",
-      url=url,
-      author='krezreb',
-      author_email='josephbeeson@gmail.com',
-      license='MIT',
-      package_dir = {
-          "cloudicorn_core": ".",
-          "cloudicorn_setup": ".",
-          "cloudicorn": ".",
-          "cloudicorn.providers.aws": "./providers/aws/",
-          "cloudicorn.providers.azurerm": "./providers/azurerm/",
-      },
-      zip_safe=False,
-      install_requires=install_requires,
-      entry_points={
-          'console_scripts': [
-              'cloudicorn=cloudicorn:cli_entrypoint',
-              'cloudicorn_setup=cloudicorn_setup:cli_entrypoint'
-          ]
-      },
+setup(name='cloudicorn',
+    version='0.3',
+    description='Taking Infrastructure As Code to the next level',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url=url,
+    author='krezreb',
+    author_email='josephbeeson@gmail.com',
+    license='MIT',
+    packages=find_packages(),
+    zip_safe=False,
+    install_requires=install_requires,
+    entry_points={
+        'console_scripts': [
+            'cloudicorn=cloudicorn:cli_entrypoint',
+            'cloudicorn_setup=cloudicorn.setup:cli_entrypoint'
+        ]
+    },
 
-      )
+)
