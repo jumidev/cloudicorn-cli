@@ -3,7 +3,7 @@
 
 import os
 import unittest
-from cloudicorn_core import assert_azurerm_sp_creds, get_random_string, AzureUtils, TerraformException
+from cloudicorn.core import assert_azurerm_sp_creds, get_random_string, AzureUtils, TerraformException
 import datetime, cloudicorn
 
 TEST_AZURE_STORAGE_ACCOUNT = os.getenv("TEST_AZURE_STORAGE_ACCOUNT", None)

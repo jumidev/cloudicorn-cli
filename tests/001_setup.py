@@ -5,6 +5,8 @@ import os
 import unittest
 import cloudicorn
 
+from cloudicorn.core import Utils
+
 class TestSetup(unittest.TestCase):
 
     def test_setup_current(self):
@@ -14,7 +16,7 @@ class TestSetup(unittest.TestCase):
         assert retcode == 0
 
     def test_check_setup_outdated(self):
-        u = cloudicorn.Utils(
+        u = Utils(
             terraform_path = os.path.dirname(os.path.realpath(__file__))+'/bin/mock_terraform_outdated'
         )
 
@@ -24,7 +26,7 @@ class TestSetup(unittest.TestCase):
         assert "terraform" in outdated
 
     def test_check_setup_missing(self):
-        u = cloudicorn.Utils(
+        u = Utils(
             terraform_path = os.path.dirname(os.path.realpath(__file__))+'/bin/none'
         )
 

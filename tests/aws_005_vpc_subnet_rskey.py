@@ -4,8 +4,8 @@
 import os
 import unittest
 import cloudicorn
-from cloudicorn_core import ComponentException
-from cloudicorn_core import assert_aws_creds
+from cloudicorn.core import ComponentException
+from cloudicorn.core import assert_aws_creds
 import random
 import string
 

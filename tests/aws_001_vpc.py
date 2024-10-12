@@ -3,7 +3,7 @@
 
 import os, sys
 import unittest
-from cloudicorn_core import Project, ComponentSourceGit
+from cloudicorn.core import Project, ComponentSourceGit
 import hcl, tempfile
 
 class TestAwsVpc(unittest.TestCase):

@@ -1,1 +1,1 @@
-from .cloudicorn import cli_entrypoint
+from .cloudicorn import cli_entrypoint, main
