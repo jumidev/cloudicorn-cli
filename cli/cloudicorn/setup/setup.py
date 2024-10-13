@@ -547,7 +547,7 @@ class SetupCreds():
             "items": [
                 ("aws", "AWS"),
                 ("azurerm", "Azure RM"),
-                ("gcp", "GCP"),
+                #("gcp", "GCP"),
                 (None, "Done")
 
             ]

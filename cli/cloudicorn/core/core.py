@@ -1674,12 +1674,12 @@ def cloud_cred_keys():
     l = []
     if check_cloud_extension("aws"):
         from cloudicorn_aws import aws_sts_cred_keys, aws_cred_keys
-        l.append(aws_sts_cred_keys())
-        l.append(aws_cred_keys())
+        l.extend(aws_sts_cred_keys())
+        l.extend(aws_cred_keys())
 
     if check_cloud_extension("azurerm"):
         from cloudicorn_azurerm import azurerm_sp_cred_keys
-        l.append(azurerm_sp_cred_keys())
+        l.extend(azurerm_sp_cred_keys())
 
     return list(set(l))
 

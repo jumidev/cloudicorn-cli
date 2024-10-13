@@ -48,11 +48,11 @@ class TfStateStoreAwsS3(TfStateStore):
         self.fetched = True
 
 def aws_sts_cred_keys():
-    return ("AWS_REGION", "AWS_ROLE_ARN", "AWS_ROLE_SESSION_NAME", "AWS_SESSION_TOKEN")
+    return ["AWS_REGION", "AWS_ROLE_ARN", "AWS_ROLE_SESSION_NAME", "AWS_SESSION_TOKEN"]
 
 
 def aws_cred_keys():
-    return ("AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
+    return ["AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
 
 
 def aws_test_creds():

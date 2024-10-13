@@ -7,7 +7,7 @@ test_last:
 	cd tests && make test_last
 
 test_aws:
-	cd tests && make test_aws
+	cd extensions/aws/tests && make test
 
 test_azurerm:
 	cd tests && make test_azurerm
