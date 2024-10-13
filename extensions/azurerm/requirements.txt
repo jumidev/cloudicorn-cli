@@ -1,8 +1,6 @@
-cloudicorn
+cloudicorn-cli
 
 azure-storage-blob
-azure-cli==2.57.0
 azure-storage-blob==12.19.1
 msal[broker]==1.26.0
 azure-mgmt-resource
-azure-identity

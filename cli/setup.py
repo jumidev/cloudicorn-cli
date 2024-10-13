@@ -26,7 +26,7 @@ for matchNum, match in enumerate(matches, start=1):
 with open("requirements.txt", "r") as fh:
     install_requires = fh.readlines()
 
-setup(name='cloudicorn',
+setup(name='cloudicorn-cli',
     version='0.3',
     description='Taking Infrastructure As Code to the next level',
     long_description=long_description,

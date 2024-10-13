@@ -32,13 +32,13 @@ class TestAwsVpcSubnet(unittest.TestCase):
         assert_aws_creds()
 
         # make vpc
-        cdir = "aws/vpc_tfstate"
+        cdir = "components/vpc_tfstate"
 
         retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
         assert retcode == 0
 
     def tearDown(self):
-        cdir = "aws/subnet_tfstate"
+        cdir = "components/subnet_tfstate"
 
         retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
         assert retcode == 0
@@ -68,7 +68,7 @@ class TestAwsVpcSubnet(unittest.TestCase):
         return self.boto_client.describe_subnets(Filters=[{'Name':'tag:Name','Values':["example subnet {}".format(self.run_string)]}])
     
     def test_apply_subnet_success(self):
-        cdir = "aws/subnet_tfstate"
+        cdir = "components/subnet_tfstate"
         retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
         assert retcode == 0
 
@@ -77,7 +77,7 @@ class TestAwsVpcSubnet(unittest.TestCase):
         assert retcode == 0
 
     def test_apply_delete_subnet_failmode_not_a_component(self):
-        cdir = "aws/subnet_tfstate_fail"
+        cdir = "components/subnet_tfstate_fail"
         try:
             cloudicorn.main(["cloudicorn", "apply", cdir, '--force',
                     '--set-var', 'run_id={}'.format(self.run_string),
@@ -88,11 +88,11 @@ class TestAwsVpcSubnet(unittest.TestCase):
             assert "must point to a component" in str(e)
 
     def test_apply_delete_subnet_failmode_no_such_tfstate_output(self):
-        cdir = "aws/subnet_tfstate_fail"
+        cdir = "components/subnet_tfstate_fail"
         try:
             cloudicorn.main(["cloudicorn", "apply", cdir, '--force',
                     '--set-var', 'run_id={}'.format(self.run_string),
-                    '--set-var', 'tfstate_link=aws/vpc_tfstate:lol'
+                    '--set-var', 'tfstate_link=components/vpc_tfstate:lol'
                     ])
             assert False
         except ComponentException as e:

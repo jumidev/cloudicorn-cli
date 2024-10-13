@@ -34,7 +34,7 @@ class TestAwsS3StateStore(unittest.TestCase):
             fh.write(random_string)
 
         project = Project(git_filtered=False)
-        cdir = "aws/vpc"
+        cdir = "components/vpc"
         project.set_component_dir(cdir)
         project.parse_component()
         obj = hcl.loads(project.hclfile)
@@ -65,7 +65,7 @@ class TestAwsS3StateStore(unittest.TestCase):
             fh.write(random_string)
 
         project = Project(git_filtered=False)
-        cdir = "aws/vpc"
+        cdir = "components/vpc"
         project.set_component_dir(cdir)
 
         crs = TfStateStoreAwsS3(args={}, localpath=tfstate_file)

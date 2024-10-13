@@ -22,12 +22,12 @@ class TestAzureRgVnetStateStore(unittest.TestCase):
         self.run_string2 = get_random_string(10)
         self.azure_utils = AzureUtils()
         self.resource_client =  self.azure_utils.resource_client
-        cdir = "azurerm/resource_group_vnet"
+        cdir = "components/resource_group_vnet"
 
         retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
         assert retcode == 0
 
-        cdir = "azurerm/resource_group_vnet"
+        cdir = "components/resource_group_vnet"
 
         retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string2)])
         assert retcode == 0
@@ -38,10 +38,10 @@ class TestAzureRgVnetStateStore(unittest.TestCase):
 
     def test_vnet_asg_etc_success(self):
         cdirs = [
-            "azurerm/virtual_network",
-            "azurerm/asg",
-            "azurerm/nsg",
-            "azurerm/subnet"
+            "components/virtual_network",
+            "components/asg",
+            "components/nsg",
+            "components/subnet"
         ]
         for cdir in cdirs: 
 
@@ -50,7 +50,7 @@ class TestAzureRgVnetStateStore(unittest.TestCase):
 
     def test_vnet_asg_etc_fail_then_success(self):
 
-        cdir = "azurerm/nsg_failapply"
+        cdir = "components/nsg_failapply"
         try:
             retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=300', '--set-var', "run_id={}".format(self.run_string2)])
             assert False

@@ -26,7 +26,7 @@ class TestAzureRgStateStore(unittest.TestCase):
 
     def test_rg(self):
 
-        cdir = "azurerm/resource_group"
+        cdir = "components/resource_group"
 
         retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
         assert retcode == 0
