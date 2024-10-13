@@ -35,11 +35,9 @@ cloudicorn_setup --install        # downloads and installs terraform
 
 ## Bootstrapping a project
 
-`cloudicorn_setup`
-
 ```
 mkdir my_project && cd my_project
-cloudicorn_setup
+cloudicorn_setup # select 'New Project' from main menu
 ```
 
 

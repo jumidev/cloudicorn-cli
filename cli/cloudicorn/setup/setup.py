@@ -564,10 +564,10 @@ class SetupCreds():
         # aws creds
         aws = False
         if check_cloud_extension("aws"):
-            from cloudicorn.aws import assert_aws_creds, aws_cred_keys, aws_test_creds
+            from cloudicorn_aws import assert_aws_creds, aws_cred_keys, aws_test_creds
         
         if check_cloud_extension("azurerm"):
-            from cloudicorn.azurerm import assert_azurerm_sp_creds, azurerm_sp_cred_keys
+            from cloudicorn_azurerm import assert_azurerm_sp_creds, azurerm_sp_cred_keys
 
         try:
             aws = assert_aws_creds()
@@ -609,7 +609,7 @@ class SetupCreds():
             if not check_cloud_extension(result):
                 message_dialog(
                     title='Missing Package',
-                    text='It looks like cloudicorn.{} is not installed.\nPlease install this package and try again'.format(result)).run()
+                    text='It looks like cloudicorn_{} is not installed.\nPlease install this package and try again'.format(result)).run()
                 return
 
             if result == "aws":
@@ -723,7 +723,7 @@ def main(argv=[]):
             aws = False
             try:
                 if check_cloud_extension("aws"):
-                    from cloudicorn.aws import assert_aws_creds
+                    from cloudicorn_aws import assert_aws_creds
                     aws = assert_aws_creds()
             except:
                 pass
@@ -732,7 +732,7 @@ def main(argv=[]):
             azure = False
             try:
                 if check_cloud_extension("azurerm"):
-                    from cloudicorn.azurerm import assert_azurerm_sp_creds
+                    from cloudicorn_azurerm import assert_azurerm_sp_creds
 
                     azure = assert_azurerm_sp_creds()
             except:

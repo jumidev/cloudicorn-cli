@@ -1,3 +1,5 @@
+cloudicorn
+
 azure-storage-blob
 azure-cli==2.57.0
 azure-storage-blob==12.19.1

@@ -139,7 +139,7 @@ class TfStateStoreAzureStorage(TfStateStore):
             blob_client.upload_blob(data=fh, overwrite=True)
 
 def azurerm_sp_cred_keys():
-    return ("AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID")
+    return ["AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID"]
 
 
 def assert_azurerm_sp_creds():
