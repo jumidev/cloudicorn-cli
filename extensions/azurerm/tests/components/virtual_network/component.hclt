@@ -1,0 +1,19 @@
+source {
+	repo = "https://github.com/jumidev/cloudicorn-testmodules-azure.git"
+	path = "network/virtual_network"
+}
+
+inputs {
+	name = "example_virtual_network_${run_id}"
+	address_spaces = ["192.168.0.0/16"]
+}
+
+component_inputs {
+	resource_group_name = "components/resource_group_vnet"
+}
+
+tfstate_store {
+	storage_account = "${storage_account}"
+	container = "${container}"
+	container_path = "test/${run_id}/${COMPONENT_PATH}"
+}

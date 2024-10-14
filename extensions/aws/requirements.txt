@@ -1,0 +1,3 @@
+cloudicorn-cli
+
+boto3

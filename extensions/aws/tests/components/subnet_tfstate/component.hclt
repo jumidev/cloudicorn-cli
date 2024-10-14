@@ -1,0 +1,18 @@
+source {
+	repo = "https://github.com/jumidev/cloudicorn-testmodules-aws.git"
+	path = "network/subnet"
+}
+
+inputs {
+	name = "example subnet ${run_id}"
+	cidr_block = "192.168.1.0/24"
+}
+
+tfstate_store {
+	bucket = "${test_bucket}"
+	bucket_path = "test/${run_id}/${COMPONENT_PATH}"
+}
+
+component_inputs {
+	vpc_id = "components/vpc_tfstate"
+}

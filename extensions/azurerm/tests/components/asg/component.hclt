@@ -1,0 +1,18 @@
+source {
+	repo = "https://github.com/jumidev/cloudicorn-testmodules-azure.git"
+	path = "infra/application_security_group"
+}
+
+inputs {
+	name = "test_asg_${run_id}"
+}
+
+component_inputs {
+	resource_group_name = "components/resource_group_vnet"
+}
+
+tfstate_store {
+	storage_account = "${storage_account}"
+	container = "${container}"
+	container_path = "test/${run_id}/${COMPONENT_PATH}"
+}

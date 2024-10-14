@@ -7,14 +7,24 @@
 
 ### Install
 
-- `pip3 install cloudicorn-cli`
+- `pip3 install cloudicorn`
 
-**or install using setup.py**
+Add AWS Support
+
+- `pip3 install cloudicorn_aws`
+
+Add Azure Support
+
+- `pip3 install cloudicorn_azurerm`
+
+
+**or install by cloning repo**
 
 ```
 git clone https://github.com/jumidev/cloudicorn-cli.git
 cd cloudicorn-cli/cli
-make install             # installs the cloudicorn CLI tool with python requirements
+make install_aws             # installs the cloudicorn CLI tool with python requirements for AWS
+make install_azurerm         # installs the cloudicorn CLI tool with python requirements for AWS
 ```
 
 ### Initial setup
@@ -23,11 +33,18 @@ make install             # installs the cloudicorn CLI tool with python requirem
 cloudicorn_setup --install        # downloads and installs terraform
 ```
 
+## Bootstrapping a project
+
+```
+mkdir my_project && cd my_project
+cloudicorn_setup # select 'New Project' from main menu
+```
+
+
 ### Installing & using terraform modules
 
 `cloudicorn` can work with any terraform code that follows [these guidelines.](component_guidelines.md)  Below are repos for the big three cloud providers.
 
 - [aws](https://github.com/jumidev/terraform-modules-auto-aws)
 - [azurerm](https://github.com/jumidev/terraform-modules-auto-azurerm)
-- [gcp](https://github.com/jumidev/terraform-modules-auto-gcp)
 

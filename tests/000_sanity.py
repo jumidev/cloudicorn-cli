@@ -3,8 +3,8 @@
 
 import unittest
 import yaml
-import cloudicorn, cloudicorn_core
-from cloudicorn_core import hcldump, get_random_string
+import cloudicorn, cloudicorn.core
+from cloudicorn.core import hcldump, get_random_string
 import hcl
 
 
@@ -20,7 +20,7 @@ class TestSanity(unittest.TestCase):
         try:
             retcode = cloudicorn.main(["cloudicorn", "parse", "mock/badhclt"])
             assert False
-        except cloudicorn_core.HclParseException:
+        except cloudicorn.core.HclParseException:
             pass
 
     def test_good_hclt(self):
@@ -76,7 +76,7 @@ class TestSanity(unittest.TestCase):
         try:
             hcls = hcldump(l1)
             assert False
-        except cloudicorn_core.HclDumpException:
+        except cloudicorn.core.HclDumpException:
             pass
 
         # dict of strs, should succeed

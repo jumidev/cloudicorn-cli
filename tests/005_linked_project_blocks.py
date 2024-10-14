@@ -4,7 +4,7 @@
 import os, shutil
 import unittest
 import cloudicorn, tempfile
-from cloudicorn_core import get_random_string, ComponentSourceException, ComponentException
+from cloudicorn.core import get_random_string, ComponentSourceException, ComponentException
 
 class TestLinkedProject(unittest.TestCase):
 

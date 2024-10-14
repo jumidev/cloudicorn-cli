@@ -3,7 +3,7 @@
 
 import os, sys
 import unittest
-from cloudicorn_core import Project, ComponentSourceGit, ComponentSourcePath, ComponentSourceException
+from cloudicorn.core import Project, ComponentSourceGit, ComponentSourcePath, ComponentSourceException
 import cloudicorn, json
 import hcl, tempfile
 

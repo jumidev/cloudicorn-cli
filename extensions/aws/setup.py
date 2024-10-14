@@ -2,16 +2,16 @@
 
 # -*- coding: utf-8 -*-
 
-import setuptools
-import re, os
-from setuptools import setup, find_packages
+import os
+import re
+from setuptools import setup
 
 url = 'https://github.com/jumidev/cloudicorn-cli'
 
 md_regex = r"\[([^\[]+)\](\(.*\))"
 
 
-with open("../README.md", "r") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
@@ -28,23 +28,17 @@ with open("requirements.txt", "r") as fh:
 
 release_version=os.environ["CLOUDICORN_RELEASE"]
 
-setup(name='cloudicorn-cli',
+setup(name='cloudicorn-aws',
     version=release_version,
-    description='Taking Infrastructure As Code to the next level',
+    description='AWS Specific extension for cloudicorn-cli',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url=url,
     author='krezreb',
     author_email='josephbeeson@gmail.com',
     license='MIT',
-    packages=find_packages(),
+    packages=["."],
     zip_safe=False,
     install_requires=install_requires,
-    entry_points={
-        'console_scripts': [
-            'cloudicorn=cloudicorn:cli_entrypoint',
-            'cloudicorn_setup=cloudicorn.setup:cli_entrypoint'
-        ]
-    },
 
 )

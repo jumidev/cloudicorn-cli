@@ -1,0 +1,4 @@
+export CLOUDICORN_NO_GIT_CHECK=1
+export PYTHONWARNINGS=ignore
+source .envrc
+source venv/bin/activate

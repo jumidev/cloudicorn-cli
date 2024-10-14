@@ -1,0 +1,6 @@
+cloudicorn-cli
+
+azure-storage-blob
+azure-storage-blob==12.19.1
+msal[broker]==1.26.0
+azure-mgmt-resource
