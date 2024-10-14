@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 
-import setuptools
+import os
 import re
 from setuptools import setup
 
@@ -26,9 +26,11 @@ for matchNum, match in enumerate(matches, start=1):
 with open("requirements.txt", "r") as fh:
     install_requires = fh.readlines()
 
-setup(name='cloudicorn_aws',
-    version='0.3',
-    description='Taking Infrastructure As Code to the next level',
+release_version=os.environ["CLOUDICORN_RELEASE"]
+
+setup(name='cloudicorn-aws',
+    version=release_version,
+    description='AWS Specific extension for cloudicorn-cli',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url=url,

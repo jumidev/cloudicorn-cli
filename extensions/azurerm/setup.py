@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 
-import setuptools
+import os
 import re
 from setuptools import setup
 
@@ -26,8 +26,10 @@ for matchNum, match in enumerate(matches, start=1):
 with open("requirements.txt", "r") as fh:
     install_requires = fh.readlines()
 
-setup(name='cloudicorn_azurerm',
-    version='0.3',
+release_version=os.environ["CLOUDICORN_RELEASE"]
+
+setup(name='cloudicorn-azurerm',
+    version=release_version,
     description='Taking Infrastructure As Code to the next level',
     long_description=long_description,
     long_description_content_type="text/markdown",

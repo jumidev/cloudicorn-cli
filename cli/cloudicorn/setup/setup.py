@@ -609,7 +609,7 @@ class SetupCreds():
             if not check_cloud_extension(result):
                 message_dialog(
                     title='Missing Package',
-                    text='It looks like cloudicorn_{} is not installed.\nPlease install this package and try again'.format(result)).run()
+                    text='It looks like cloudicorn-{} is not installed.\nPlease install this package and try again'.format(result)).run()
                 return
 
             if result == "aws":
