@@ -10,7 +10,8 @@ import sys
 import yaml
 import os
 
-from cloudicorn.core import log, Utils, check_cloud_extension
+from cloudicorn.core import log, check_cloud_extension
+from cloudicorn.tfwrapper import Utils
 from cloudicorn.core import git_rootdir, run, HclParseException, get_random_string
 from git import Repo
 from pathlib import Path
@@ -687,8 +688,8 @@ def main(argv=[]):
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--debug', action='store_true',
                         help='display debug messages')
-    parser.add_argument('--install', action='store_true',
-                        help='install / upgrade terraform')
+    parser.add_argument('--install-terraform', action='store_true', help='install / upgrade terraform')
+    parser.add_argument('--install-opentofu', action='store_true', help='install / upgrade opentofu')
     args = parser.parse_args(args=argv)
 
     if args.debug or os.getenv('CLOUDICORN_DEBUG', 'n')[0].lower() in ['y', 't', '1']:
@@ -696,12 +697,20 @@ def main(argv=[]):
         DEBUG = True
         log("debug mode enabled")
 
+    menuitems = [
+        ("terraform", "Install/upgrade terraform")
+    ]
+
+    if check_cloud_extension("opentofu"):
+        menuitems = [
+            ("opentofu", "Install/upgrade opentofu")
+        ]
     menu = {
         "main":  {
             "title": "{} Main Menu".format(PACKAGE),
             "text": "Current working directory is {}\nSelect from the following options".format(os.path.abspath(os.getcwd())),
             "items": [
-                ("terraform", "Install/upgrade terraform"),
+                *menuitems,
                 (None, "Exit")
 
             ]
@@ -758,8 +767,10 @@ def main(argv=[]):
         else:
             menuvalues.insert(0, ('new_project', 'New Project'))
 
-        if args.install:
+        if args.install_terraform:
             result = "terraform"
+        elif args.install_opentofu:
+            result = "opentofu"
         else:
             result = radiolist_dialog(
                 values=menuvalues,
@@ -778,56 +789,13 @@ def main(argv=[]):
             proj.tui()
 
         if result == "terraform":
-            try:
-                missing, outdated = u.check_setup()
-                u.terraform_currentversion()
-                if result in missing:
-                    u.install_terraform()
-                    ok = message_dialog(
-                        title='Success',
-                        text='terraform {} successfully installed.'.format(u.terraform_currentversion()[0])).run()
-                elif result in outdated:
-                    ans = yes_no_dialog(
-                        title='{} is out of date'.format(result),
-                        text='upgrade to latest version?').run()
-                    if ans:
-                        u.install_terraform()
-                else:
-                    ok = message_dialog(
-                        title='Nothing to do',
-                        text='terraform {} is already installed in {} and is the latest version.'.format(u.terraform_currentversion()[0], u.terraform_path)).run()
-
-                terraformrc = os.path.expanduser('~/.terraformrc')
-                plugin_cache = False
-
-                lines = []
-
-                if os.path.isfile(terraformrc):
-                    with open(terraformrc, 'r') as fh:
-                        for line in fh.readlines():
-                            lines.append(line)
-                            if "plugin_cache_dir = " in line:
-                                plugin_cache = True
-
-                if not plugin_cache:
-                    ans = yes_no_dialog(
-                        title='No terraform plugin cache'.format(result),
-                        text='No terraform plugin cache found in ~/.terraformrc.  Caching terraform plugins locally saves bandwidth and reduces init time.  Enable caching?').run()
-                    if ans:
-                        lines.append(
-                            'plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"')
-
-                        with open(terraformrc, "w") as fh:
-                            for l in lines:
-                                fh.write(l)
-
-            except Exception as e:
-                ok = message_dialog(
-                    title='Error',
-                    text='Could not check {}\n {}.'.format(result, str(e))).run()
+            u.setuptui()
+            
             time.sleep(0.3)
 
-        if args.install:
+        if args.install_opentofu:
+            result = None
+        if args.install_terraform:
             result = None
 
         if result == "tfstore_setup_encryption":

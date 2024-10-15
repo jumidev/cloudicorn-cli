@@ -42,3 +42,10 @@ publish_pypi:
 	cd extensions/azurerm &&  rm -rf dist build && \
 	python3 setup.py sdist bdist_wheel && \
 	python3 -m twine upload dist/*
+
+clean:
+	find -type d -name "dist" -exec rm -rf {} \;
+	find -type d -name "__pycache__" -exec rm -rf {} \;
+	find -type d -name "*egg-info"  -exec rm -rf {} \;
+	rm -rf cli/build
+	rm -rf extensions/*/build

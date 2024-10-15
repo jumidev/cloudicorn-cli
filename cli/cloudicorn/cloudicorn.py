@@ -6,8 +6,11 @@ import os
 import sys
 import argparse
 from pyfiglet import Figlet
-from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, get_cloudicorn_cachedir, TerraformException
-from cloudicorn.core import Utils, Project, WrapTerraform
+from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, get_cloudicorn_cachedir
+from cloudicorn.core import Project
+from cloudicorn.tfwrapper import Utils
+
+from cloudicorn.tfwrapper import WrapTerraform, TFException
 
 PACKAGE = "cloudicorn"
 LOG = True
@@ -100,7 +103,7 @@ def main(argv=[]):
         terraform_path = out.strip()
 
     u = Utils(
-        terraform_path=terraform_path
+        tf_path=terraform_path
     )
     u.setup(args)
 
@@ -130,7 +133,7 @@ def main(argv=[]):
 
     project = Project(git_filtered=git_filtered,
                       project_vars=project_vars, wdir=args.project_dir)
-    wt = WrapTerraform(terraform_path=u.terraform_path)
+    wt = WrapTerraform(terraform_path=u.tf_path)
     project.set_passphrases(tfstate_store_encryption_passphrases)
 
     if args.downstream_args != None:
@@ -149,7 +152,7 @@ def main(argv=[]):
         command = args.command[1]
 
     if command == "terraform":
-        print(u.terraform_path)
+        print(u.tf_path)
         return 0
 
     CHECK_GIT = True
@@ -270,7 +273,7 @@ def main(argv=[]):
 
                     exitcode = runshow(cmd, cwd=project.tf_dir)
                     if exitcode != 0:
-                        raise TerraformException(
+                        raise TFException(
                             "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
                     # requested command
@@ -293,7 +296,7 @@ def main(argv=[]):
                     # save tfstate
                     crs.push()
                     if exitcode != 0:
-                        raise TerraformException(
+                        raise TFException(
                             "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
                     return 0
@@ -351,7 +354,7 @@ def main(argv=[]):
                 out_dict = []
 
                 # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
-                wt = WrapTerraform(terraform_path=u.terraform_path)
+                wt = WrapTerraform(terraform_path=u.tf_path)
                 if args.downstream_args != None:
                     wt.set_option(args.downstream_args)
 
