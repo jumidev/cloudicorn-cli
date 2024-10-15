@@ -97,14 +97,13 @@ def main(argv=[]):
         DEBUG = True
         log("debug mode enabled")
 
-    (out, err, exitcode) = run("which terraform")
-    terraform_path = None
-    if exitcode == 0:
-        terraform_path = out.strip()
+    tf_path = os.getenv("TERRAFORM_BIN", None)
+    # (out, err, exitcode) = run("which terraform")
+    # terraform_path = None
+    # if exitcode == 0:
+    #     terraform_path = out.strip()
 
-    u = Utils(
-        tf_path=terraform_path
-    )
+    u = Utils()
     u.setup(args)
 
     if args.setup_shell or args.check_setup or args.setup:
@@ -133,7 +132,7 @@ def main(argv=[]):
 
     project = Project(git_filtered=git_filtered,
                       project_vars=project_vars, wdir=args.project_dir)
-    wt = WrapTerraform(terraform_path=u.tf_path)
+    wt = WrapTerraform(bin_path=u.tf_path)
     project.set_passphrases(tfstate_store_encryption_passphrases)
 
     if args.downstream_args != None:
@@ -354,7 +353,7 @@ def main(argv=[]):
                 out_dict = []
 
                 # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
-                wt = WrapTerraform(terraform_path=u.tf_path)
+                wt = WrapTerraform(bin_path=u.tf_path)
                 if args.downstream_args != None:
                     wt.set_option(args.downstream_args)
 

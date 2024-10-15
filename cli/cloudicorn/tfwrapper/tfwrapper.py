@@ -123,15 +123,17 @@ class Utils():
         debug("missing={}".format(missing))
         debug("outofdate={}".format(outofdate))
 
-        if len(missing)+len(outofdate) == 0:
-            log("SETUP, Nothing to do. terraform installed and up to date")
-        else:
-            if "terraform" in missing:
-                log("Installing terraform")
-                self.install_terraform()
-            elif "terraform" in outofdate and update:
+        if missing:
+            log("Installing terraform")
+            self.install_terraform()
+        elif outofdate:
+            if update:
                 log("Updating terraform")
                 self.install_terraform()
+            else:
+                log("An update is available for terraform")
+        else:
+            log("SETUP, Nothing to do. terraform installed and up to date")
 
     def install_terraform(self, version=None):
         currentver, url = self.tf_currentversion()
@@ -190,10 +192,10 @@ class Utils():
             debug("last check {} hours ago".format(float(diff)/3600))
 
         missing, outdated = self.check_setup(verbose=True, updates=updates)
-        if len(missing) > 0:
+        if missing:
             return -1
 
-        if len(outdated) == 0 and not os.path.isfile(check_file):
+        if not outdated and not os.path.isfile(check_file):
             '''
             since checking for updates takes a few seconds, we only want to do this once every 8 hours
             HOWEVER, once the update is available, we want to inform the user on EVERY EXEC, since they might
@@ -211,10 +213,10 @@ class Utils():
         if args.check_setup:
             missing, outdated = self.check_setup()
 
-            if len(missing) > 0:
+            if missing:
                 log("CHECK SETUP: MISSING {}".format(", ".join(missing)))
 
-            elif len(outdated) > 0:
+            elif outdated:
                 log("CHECK SETUP: UPDATES AVAILABLE")
             else:
                 log("terraform installed and up to date")

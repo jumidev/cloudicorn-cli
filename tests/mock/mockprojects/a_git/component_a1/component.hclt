@@ -1,5 +1,5 @@
 source {
-    repo = "git@github.com:jumidev/test_component_placeholder.git"
+    repo = "https://github.com/jumidev/test_component_placeholder.git"
     path = "foo_and_random_string"
 }
 
