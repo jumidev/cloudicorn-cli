@@ -10,8 +10,7 @@ class TestSetup(unittest.TestCase):
 
     def test_setup_current(self):
 
-        os.environ["TERRAFORM_BIN"] = os.path.dirname(os.path.realpath(__file__))+'/bin/mock_terraform_current'
-        retcode = cloudicorn.main(["cloudicorn", "--check-setup"])
+        retcode = cloudicorn.main(["cloudicorn", "--check-setup", "--tf-bin-path", os.path.dirname(os.path.realpath(__file__))+'/bin/mock_terraform_current'])
         assert retcode == 0
 
     def test_check_setup_outdated(self):

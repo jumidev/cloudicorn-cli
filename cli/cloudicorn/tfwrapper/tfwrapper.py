@@ -10,10 +10,8 @@ import json
 import zipfile
 import time
 
-from prompt_toolkit.shortcuts import yes_no_dialog, button_dialog
+from prompt_toolkit.shortcuts import yes_no_dialog
 from prompt_toolkit.shortcuts import message_dialog
-from prompt_toolkit.shortcuts import input_dialog
-from prompt_toolkit.shortcuts import radiolist_dialog
 from prompt_toolkit.formatted_text import HTML
 
 class TFException(Exception):
@@ -21,6 +19,12 @@ class TFException(Exception):
 
 
 class TFWrapper():
+
+    def __init__(self, tf_path):
+
+        self.tf_path = tf_path
+        self.cli_options = []
+        self.quiet = False
 
     def get_cache_dir(ymlfile, package_name):
         cache_slug = os.path.abspath(ymlfile)
@@ -35,7 +39,7 @@ class TFWrapper():
 
     def get_command(self, command, extra_args=[]):
 
-        cmd = "{} {} {} {}".format(self.tf_bin, command, " ".join(
+        cmd = "{} {} {} {}".format(self.tf_path, command, " ".join(
             set(self.cli_options)), " ".join(extra_args))
 
         if self.quiet:
@@ -45,14 +49,7 @@ class TFWrapper():
         return cmd
 
 class WrapTerraform(TFWrapper):
-    def __init__(self, bin_path=None):
-
-        if bin_path == None:
-            bin_path = os.getenv("TERRAFORM_BIN", "terraform")
-
-        self.tf_bin = bin_path
-        self.cli_options = []
-        self.quiet = False
+    pass
 
 class Utils():
 
@@ -62,26 +59,25 @@ class Utils():
     def __init__(self, tf_path=None):
         self.tf_v = None
 
-        conf_file = "{}/config.hcl".format(self.conf_dir)
-        if os.path.isfile(conf_file):
-            with open(conf_file, 'r') as fp:
-                self.conf = hcl.load(fp)
-        else:
-            self.conf = {}
+        if tf_path == None:
+            conf_file = "{}/config.hcl".format(self.conf_dir)
+            if os.path.isfile(conf_file):
+                with open(conf_file, 'r') as fp:
+                    self.conf = hcl.load(fp)
+            else:
+                self.conf = {}
 
-        try:
-            self.bin_dir = os.path.expanduser(self.conf['bin_dir'])
-        except:
-            pass
-        if tf_path == None:
-            tf_path = os.getenv("TERRAFORM_BIN", None)
-        if tf_path == None:
+            try:
+                self.bin_dir = os.path.expanduser(self.conf['bin_dir'])
+            except:
+                pass
+
             tf_path = "{}/terraform".format(self.bin_dir)
             if not os.path.isdir(self.bin_dir):
                 os.makedirs(self.bin_dir)
 
         self.tf_path = tf_path
-
+        
         if not os.path.isdir(self.conf_dir):
             os.makedirs(self.conf_dir)
 

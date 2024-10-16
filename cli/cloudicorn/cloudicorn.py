@@ -52,7 +52,8 @@ def main(argv=[]):
                         help='optional remote state key to return')
     parser.add_argument('--set-var', action='append', nargs='+',
                         help='optional variable to override (usage: --set-var KEY=VALUE)')
-
+    parser.add_argument('--tf-bin-path', default=None,
+                        help='specify path to backend binary (terraform or opentofu)')
     # booleans
     parser.add_argument('--clean', dest='clean',
                         action='store_true', help='clear all cache')
@@ -97,13 +98,14 @@ def main(argv=[]):
         DEBUG = True
         log("debug mode enabled")
 
-    tf_path = os.getenv("TERRAFORM_BIN", None)
+    tf_path = os.getenv("TERRAFORM_BIN", args.tf_bin_path)
+
     # (out, err, exitcode) = run("which terraform")
     # terraform_path = None
     # if exitcode == 0:
     #     terraform_path = out.strip()
 
-    u = Utils()
+    u = Utils(tf_path=tf_path)
     u.setup(args)
 
     if args.setup_shell or args.check_setup or args.setup:
@@ -132,7 +134,7 @@ def main(argv=[]):
 
     project = Project(git_filtered=git_filtered,
                       project_vars=project_vars, wdir=args.project_dir)
-    wt = WrapTerraform(bin_path=u.tf_path)
+    wt = WrapTerraform(tf_path=u.tf_path)
     project.set_passphrases(tfstate_store_encryption_passphrases)
 
     if args.downstream_args != None:
@@ -268,7 +270,7 @@ def main(argv=[]):
                         fh.write(tfvars_hcl)
 
                     # terraform init
-                    cmd = "{} init ".format(wt.tf_bin)
+                    cmd = "{} init ".format(u.tf_path)
 
                     exitcode = runshow(cmd, cwd=project.tf_dir)
                     if exitcode != 0:
@@ -353,7 +355,7 @@ def main(argv=[]):
                 out_dict = []
 
                 # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
-                wt = WrapTerraform(bin_path=u.tf_path)
+                wt = WrapTerraform(tf_path=u.tf_path)
                 if args.downstream_args != None:
                     wt.set_option(args.downstream_args)
 
