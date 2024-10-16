@@ -12,3 +12,5 @@ test: setup
 test_last: setup
 	source .envtest && python3 -m pytest `ls 0*py | sort | tail -n 1`
 
+test_TEST_FILTER: setup
+	source .envtest && python3 -m pytest $(TEST_FILTER)
