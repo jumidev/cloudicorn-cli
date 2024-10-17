@@ -59,26 +59,32 @@ def download_progress(url, filename, w=None):
 def check_cloud_extension(which):
     if which == "aws":
         try:
-            import cloudicorn_aws
+            from cloudicorn_aws import exists
             return True
         except ImportError:
             return False
 
     if which == "azurerm":
         try:
-            import cloudicorn_azurerm
+            from cloudicorn_azurerm import exists
             return True
         except ImportError:
             return False
 
     if which == "gcp":
         try:
-            import cloudicorn_gcp
+            from cloudicorn_gcp import exists
             return True
         except ImportError:
             return False
         
-
+    if which == "opentofu":
+        try:
+            from cloudicorn_opentofu import exists
+            return True
+        except ImportError:
+            return False
+        
 def get_cloudicorn_cachedir(salt, cleanup=True):
     current_date_slug = datetime.today().strftime('%Y-%m-%d')
 

@@ -1,10 +1,8 @@
-
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 from cloudicorn.core import debug, log, run, download_progress
-from cloudicorn.tfwrapper import TFWrapper, TFException
+from cloudicorn.tfwrapper import TFWrapper, Utils
 import os
 import hashlib
 import requests
@@ -12,19 +10,32 @@ import hcl
 import json
 import zipfile
 import time
+import platform as plat
 
+from prompt_toolkit.shortcuts import yes_no_dialog
+from prompt_toolkit.shortcuts import message_dialog
+from prompt_toolkit.formatted_text import HTML
 
 class WrapOpentofu(TFWrapper):
-    def __init__(self, bin_path=None):
+    pass
 
-        if bin_path == None:
-            bin_path = os.getenv("OPENTOFU_BIN", "opentofu")
+def exists():
+    pass
 
-        self.tf_bin = bin_path
-        self.cli_options = []
-        self.quiet = False
+def get_release(v):
+    from sys import platform
+    p = plat.machine()
 
-class Utils():
+    if p == "x86_64":
+        arch = "amd64"
+    if p == "aarch64":
+        arch = "arm64"
+
+    dlroot = "https://github.com/opentofu/opentofu/releases/download"
+    return "{}/{}/tofu_{}_{}_{}.zip".format(dlroot, v, v[1:], platform, arch)
+
+
+class OpentofuUtils(Utils):
 
     conf_dir = os.path.expanduser("~/.config/cloudicorn")
     bin_dir = os.path.expanduser("~/.config/cloudicorn/bin")
@@ -32,57 +43,36 @@ class Utils():
     def __init__(self, tf_path=None):
         self.tf_v = None
 
-        conf_file = "{}/config.hcl".format(self.conf_dir)
-        if os.path.isfile(conf_file):
-            with open(conf_file, 'r') as fp:
-                self.conf = hcl.load(fp)
-        else:
-            self.conf = {}
+        if tf_path == None:
+            conf_file = "{}/config.hcl".format(self.conf_dir)
+            if os.path.isfile(conf_file):
+                with open(conf_file, 'r') as fp:
+                    self.conf = hcl.load(fp)
+            else:
+                self.conf = {}
 
-        try:
-            self.bin_dir = os.path.expanduser(self.conf['bin_dir'])
-        except:
-            pass
-        if tf_path == None:
-            tf_path = os.getenv("TERRAFORM_BIN", None)
-        if tf_path == None:
-            tf_path = "{}/terraform".format(self.bin_dir)
+            try:
+                self.bin_dir = os.path.expanduser(self.conf['bin_dir'])
+            except:
+                pass
+
+            tf_path = "{}/tofu".format(self.bin_dir)
             if not os.path.isdir(self.bin_dir):
                 os.makedirs(self.bin_dir)
 
-        self.terraform_path = tf_path
-
+        self.tf_path = tf_path
+        
         if not os.path.isdir(self.conf_dir):
             os.makedirs(self.conf_dir)
 
-    def terraform_currentversion(self):
+    def tf_currentversion(self):
         if self.tf_v == None:
-            r = requests.get(
-                "https://releases.hashicorp.com/terraform/index.json")
-            obj = json.loads(r.content)
-            versions = []
-            for k in obj['versions'].keys():
-                a, b, c = k.split('.')
+            r = requests.get("https://github.com/opentofu/opentofu/releases/latest")
+            v = r.url.split("/")[-1]
 
-                try:
-                    v1 = "{:05}".format(int(a))
-                    v2 = "{:05}".format(int(b))
-                    v3 = "{:05}".format(int(c))
-                    versions.append("{}.{}.{}".format(v1, v2, v3))
-                except ValueError:
-                    # if alphanumeric chars in version
-                    # this excludes, rc, alpha, beta versions
-                    continue
+            dl_url = get_release(v)
 
-            versions.sort()  # newest will be at the end
-            v1, v2, v3 = versions.pop(-1).split(".")
-
-            latest = "{}.{}.{}".format(int(v1), int(v2), int(v3))
-
-            url = "https://releases.hashicorp.com/terraform/{}/terraform_{}_linux_amd64.zip".format(
-                latest, latest)
-
-            self.tf_v = (latest, url)
+            self.tf_v = (v, dl_url)
 
         return self.tf_v
 
@@ -93,54 +83,56 @@ class Utils():
         debug("missing={}".format(missing))
         debug("outofdate={}".format(outofdate))
 
-        if len(missing)+len(outofdate) == 0:
-            log("SETUP, Nothing to do. terraform installed and up to date")
+        if missing:
+            log("Installing opentofu")
+            self.install_opentofu()
+        elif outofdate:
+            if update:
+                log("Updating opentofu")
+                self.install_opentofu()
+            else:
+                log("An update is available for opentofu")
         else:
-            if "terraform" in missing:
-                log("Installing terraform")
-                self.install_terraform()
-            elif "terraform" in outofdate and update:
-                log("Updating terraform")
-                self.install_terraform()
+            log("SETUP, Nothing to do. opentofu installed and up to date")
 
-    def install_terraform(self, version=None):
-        currentver, url = self.terraform_currentversion()
+    def install_opentofu(self, version=None):
+        currentver, url = self.tf_currentversion()
         if version == None:
             version = currentver
 
-        log("Downloading terraform {} to {}...".format(
-            version, self.terraform_path))
-        download_progress(url, self.terraform_path+".zip")
+        log("Downloading opentofu {} to {}...".format(
+            version, self.tf_path))
+        download_progress(url, self.tf_path+".zip")
 
-        with zipfile.ZipFile(self.terraform_path+".zip", 'r') as zip_ref:
-            zip_ref.extract("terraform", os.path.abspath(
-                '{}/../'.format(self.terraform_path)))
+        with zipfile.ZipFile(self.tf_path+".zip", 'r') as zip_ref:
+            zip_ref.extract("tofu", os.path.abspath(
+                '{}/../'.format(self.tf_path)))
 
-        os.chmod(self.terraform_path, 500)  # make executable
-        os.unlink(self.terraform_path+".zip")  # delete zip
+        os.chmod(self.tf_path, 500)  # make executable
+        os.unlink(self.tf_path+".zip")  # delete zip
 
     def check_setup(self, verbose=True, updates=True):
-        missing = []
-        outofdate = []
-        debug(self.terraform_path)
-        out, err, retcode = run("{} --version".format(self.terraform_path))
+        missing = False
+        outofdate = False
+        debug(self.tf_path)
+        out, err, retcode = run("{} --version".format(self.tf_path))
 
         debug("check setup")
         debug((out, err, retcode))
 
         if retcode == 127:
-            missing.append("terraform")
+            missing = True
             if verbose:
-                log("terraform not installed, you can download it from https://www.terraform.io/downloads.html")
-        elif "Your version of Terraform is out of date" in out and updates:
-            outofdate.append("terraform")
+                log("opentofu not installed, you can download it from https://github.com/opentofu/opentofu/releases")
+        elif "Your version of Opentofu is out of date" in out and updates:
+            outofdate = True
             if verbose:
-                log("Your version of terraform is out of date! You can update by running 'cloudicorn_setup', or by manually downloading from https://www.terraform.io/downloads.html")
+                log("Your version of opentofu is out of date! You can update by running 'cloudicorn_setup', or by manually downloading from https://github.com/opentofu/opentofu/releases")
 
-        return (missing, outofdate)
+        return missing, outofdate
 
     def autocheck(self, hours=8):
-        check_file = "{}/autocheck_timestamp".format(self.conf_dir)
+        check_file = "{}/opentofu_autocheck_timestamp".format(self.conf_dir)
         if not os.path.isfile(check_file):
             diff = hours*60*60  # 8 hours
         else:
@@ -160,10 +152,10 @@ class Utils():
             debug("last check {} hours ago".format(float(diff)/3600))
 
         missing, outdated = self.check_setup(verbose=True, updates=updates)
-        if len(missing) > 0:
+        if missing:
             return -1
 
-        if len(outdated) == 0 and not os.path.isfile(check_file):
+        if not outdated and not os.path.isfile(check_file):
             '''
             since checking for updates takes a few seconds, we only want to do this once every 8 hours
             HOWEVER, once the update is available, we want to inform the user on EVERY EXEC, since they might
@@ -181,31 +173,69 @@ class Utils():
         if args.check_setup:
             missing, outdated = self.check_setup()
 
-            if len(missing) > 0:
+            if missing:
                 log("CHECK SETUP: MISSING {}".format(", ".join(missing)))
 
-            elif len(outdated) > 0:
+            elif outdated:
                 log("CHECK SETUP: UPDATES AVAILABLE")
             else:
-                log("terraform installed and up to date")
+                log("opentofu installed and up to date")
 
         else:
             # auto check once every 8 hours
             self.autocheck()
 
-        if args.setup_shell:
-            with open(os.path.expanduser('~/.bashrc'), 'r') as fh:
-                bashrc = fh.readlines()
 
-            lines = (
-                "alias cloudi_y='export CLOUDICORN_APPROVE=true'",
-                "alias cloudi_n='export CLOUDICORN_APPROVE=false'",
-                "alias cloudi_gf='export CLOUDICORN_GIT_FILTER=true'",
-                "alias cloudi_gfn='export CLOUDICORN_GIT_FILTER=false'")
+    def setuptui(self):
+        try:
+            missing, outdated = self.check_setup()
+            self.tf_currentversion()
+            if missing:
+                self.install_opentofu()
+                ok = message_dialog(
+                    title='Success',
+                    text='opentofu {} successfully installed.'.format(self.tf_currentversion()[0])).run()
+            elif outdated:
+                ans = yes_no_dialog(
+                    title='{} is out of date'.format("opentofu"),
+                    text='upgrade to latest version?').run()
+                if ans:
+                    self.install_opentofu()
+            else:
+                ok = message_dialog(
+                    title='Nothing to do',
+                    text='opentofu {} is already installed in {} and is the latest version.'.format(self.tf_currentversion()[0], self.tf_path)).run()
 
-            with open(os.path.expanduser('~/.bashrc'), "a") as fh:
-                for l in lines:
-                    l = "{}\n".format(l)
-                    if l not in bashrc:
-                        fh.write(l)
-            log("SETUP SHELL: OK")
+            rcfile = os.path.expanduser('~/.tofurc')
+            plugin_cache = False
+
+            lines = []
+
+            if os.path.isfile(rcfile):
+                with open(rcfile, 'r') as fh:
+                    for line in fh.readlines():
+                        lines.append(line)
+                        if "plugin_cache_dir = " in line:
+                            plugin_cache = True
+
+            if not plugin_cache:
+                ans = yes_no_dialog(
+                    title='No opentofu plugin cache',
+                    text='No opentofu plugin cache found in ~/.tofurc.  Caching plugins locally saves bandwidth and reduces init time.  Enable caching?').run()
+                if ans:
+                    plugin_cache_dir = "~/.tofu.d/plugin-cache"
+                    lines.append(
+                        'plugin_cache_dir = {}'.format(plugin_cache_dir))
+
+                    with open(rcfile, "w") as fh:
+                        for l in lines:
+                            fh.write(l)
+                    d = os.path.expanduser(plugin_cache_dir)
+                    if not os.path.isdir(d):
+                        os.makedirs(d)
+
+
+        except Exception as e:
+            ok = message_dialog(
+                title='Error',
+                text='Could not check {}\n {}.'.format("opentofu", str(e))).run()

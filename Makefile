@@ -9,6 +9,10 @@ install_aws: install
 install_azurerm: install
 	cd extensions/azurerm && python3 setup.py install --user &&	rm -rf build dist *egg-info
 
+install_opentofu: install
+	cd extensions/opentofu && python3 setup.py install --user &&	rm -rf build dist *egg-info
+
+
 build_test_docker:
 	docker build . -f Dockerfile-tests -t test-cloudicorn
 

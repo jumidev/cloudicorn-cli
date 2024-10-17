@@ -28,11 +28,22 @@ Save them to environment variables (see `.envrc.tpl`)
 
 You'll also need to set `AZURE_SUBSCRIPTION_ID`
 
-# running tests
+## running tests
 
 Create a storage account and container that the above service principal can write to 
 
-
 `make test` Uses terraform modules in `https://github.com/jumidev/cloudicorn-testmodules-azure`
 
-- runs a set of components 
+- runs a set of components
+
+## testing with opentofu instead of terraform
+
+opentofu can now be used as a drop in replacement for terraform and can be tested independently of terraform.  You'll need to enable the opentofu extension in the test virtual env by running. `make enable_opentofu`
+
+Be sure to also run `cloudicorn_setup` and install opentofu from the main menu.  Confirm this extension is installed by running `make setup`.  You should see a message at the bottom 
+
+```
+opentofu installed and up to date
+```
+
+Once it is installed, run `make test` as you would normally

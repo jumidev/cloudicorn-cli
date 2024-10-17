@@ -1,16 +1,24 @@
 SHELL := /bin/bash
 
 setup:
-	terraform --version > /dev/null  2>&1 || (echo "terraform not installed, exiting" && false) 
 	python3 -m venv venv
 	source .envtest && pip uninstall cloudicorn -y
 	source .envtest && cd .. && pip install setuptools pytest 
 	source .envtest && cd ../../../cli && python3 setup.py install  
 	source .envtest && cd .. && python3 setup.py install 
 	source .envtest && cd .. && pip install -r requirements.txt
+	source .envtest && cloudicorn --check-setup
 
 test: setup
 	source .envtest && python3 -m pytest 0*py
+
+enable_opentofu:
+	source .envtest && cd ../../../extensions/opentofu && python3 setup.py install 
+	source .envtest && cloudicorn --check-setup
+
+disable_opentofu:
+	source .envtest && pip uninstall cloudicorn-opentofu -y
+
 
 test_TEST_FILTER: setup
 	source .envtest && python3 -m pytest $(TEST_FILTER)*

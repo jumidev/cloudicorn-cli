@@ -683,13 +683,24 @@ def main(argv=[]):
 
     proj = ProjectSetup()
 
+    menuitems = [
+        ("install", "Install/upgrade terraform")
+    ]
+
     parser = argparse.ArgumentParser(description='',
                                      add_help=True,
                                      formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--debug', action='store_true',
                         help='display debug messages')
-    parser.add_argument('--install-terraform', action='store_true', help='install / upgrade terraform')
-    parser.add_argument('--install-opentofu', action='store_true', help='install / upgrade opentofu')
+    
+    if check_cloud_extension("opentofu"):
+        menuitems = [
+            ("install", "Install/upgrade opentofu")
+        ]
+        parser.add_argument('--install', action='store_true', help='install / upgrade opentofu')
+    else:
+        parser.add_argument('--install', action='store_true', help='install / upgrade terraform')
+    
     args = parser.parse_args(args=argv)
 
     if args.debug or os.getenv('CLOUDICORN_DEBUG', 'n')[0].lower() in ['y', 't', '1']:
@@ -697,14 +708,7 @@ def main(argv=[]):
         DEBUG = True
         log("debug mode enabled")
 
-    menuitems = [
-        ("terraform", "Install/upgrade terraform")
-    ]
 
-    if check_cloud_extension("opentofu"):
-        menuitems = [
-            ("opentofu", "Install/upgrade opentofu")
-        ]
     menu = {
         "main":  {
             "title": "{} Main Menu".format(PACKAGE),
@@ -767,10 +771,8 @@ def main(argv=[]):
         else:
             menuvalues.insert(0, ('new_project', 'New Project'))
 
-        if args.install_terraform:
-            result = "terraform"
-        elif args.install_opentofu:
-            result = "opentofu"
+        if args.install:
+            result = "install"
         else:
             result = radiolist_dialog(
                 values=menuvalues,
@@ -781,6 +783,10 @@ def main(argv=[]):
 
         u = Utils()
 
+        if check_cloud_extension("opentofu"):
+            from cloudicorn_opentofu import OpentofuUtils
+            u = OpentofuUtils()
+
         if result == 'links':
             proj.linkstui()
 
@@ -788,14 +794,12 @@ def main(argv=[]):
 
             proj.tui()
 
-        if result == "terraform":
+        if result == "install":
             u.setuptui()
             
             time.sleep(0.3)
 
-        if args.install_opentofu:
-            result = None
-        if args.install_terraform:
+        if args.install:
             result = None
 
         if result == "tfstore_setup_encryption":
