@@ -46,6 +46,10 @@ publish_pypi:
 	cd extensions/azurerm &&  rm -rf dist build && \
 	python3 setup.py sdist bdist_wheel && \
 	python3 -m twine upload dist/*
+	# opentofu
+	cd extensions/opentofu &&  rm -rf dist build && \
+	python3 setup.py sdist bdist_wheel && \
+	python3 -m twine upload dist/*
 
 clean:
 	find -type d -name "dist" -exec rm -rf {} \;
