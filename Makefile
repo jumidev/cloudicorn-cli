@@ -9,6 +9,10 @@ install_aws: install
 install_azurerm: install
 	cd extensions/azurerm && python3 setup.py install --user &&	rm -rf build dist *egg-info
 
+install_opentofu: install
+	cd extensions/opentofu && python3 setup.py install --user &&	rm -rf build dist *egg-info
+
+
 build_test_docker:
 	docker build . -f Dockerfile-tests -t test-cloudicorn
 
@@ -42,3 +46,14 @@ publish_pypi:
 	cd extensions/azurerm &&  rm -rf dist build && \
 	python3 setup.py sdist bdist_wheel && \
 	python3 -m twine upload dist/*
+	# opentofu
+	cd extensions/opentofu &&  rm -rf dist build && \
+	python3 setup.py sdist bdist_wheel && \
+	python3 -m twine upload dist/*
+
+clean:
+	find -type d -name "dist" -exec rm -rf {} \;
+	find -type d -name "__pycache__" -exec rm -rf {} \;
+	find -type d -name "*egg-info"  -exec rm -rf {} \;
+	rm -rf cli/build
+	rm -rf extensions/*/build

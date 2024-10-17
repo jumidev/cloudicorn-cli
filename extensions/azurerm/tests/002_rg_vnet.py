@@ -3,7 +3,8 @@
 
 import os
 import unittest
-from cloudicorn.core import get_random_string, TerraformException
+from cloudicorn.core import get_random_string
+from cloudicorn.tfwrapper import TFException
 
 from cloudicorn_azurerm import assert_azurerm_sp_creds, AzureUtils
 import datetime, cloudicorn
@@ -54,7 +55,7 @@ class TestAzureRgVnetStateStore(unittest.TestCase):
         try:
             retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=300', '--set-var', "run_id={}".format(self.run_string2)])
             assert False
-        except TerraformException:
+        except TFException:
             pass
     
         retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=301', '--set-var', "run_id={}".format(self.run_string2)])

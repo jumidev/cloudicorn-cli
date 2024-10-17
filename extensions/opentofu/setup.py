@@ -28,9 +28,9 @@ with open("requirements.txt", "r") as fh:
 
 release_version=os.getenv("CLOUDICORN_RELEASE", "999.dev")
 
-setup(name='cloudicorn-aws',
+setup(name='cloudicorn-opentofu',
     version=release_version,
-    description='AWS Specific extension for cloudicorn-cli',
+    description='Replaces terraform backend with opentofu',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url=url,

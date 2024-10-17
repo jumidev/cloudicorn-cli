@@ -6,8 +6,17 @@ import os
 import sys
 import argparse
 from pyfiglet import Figlet
-from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, get_cloudicorn_cachedir, TerraformException
-from cloudicorn.core import Utils, Project, WrapTerraform
+from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, check_cloud_extension
+from cloudicorn.core import Project
+from cloudicorn.tfwrapper import WrapTerraform as WrapTf
+from cloudicorn.tfwrapper import TFException
+
+if check_cloud_extension("opentofu"):
+    from cloudicorn_opentofu import OpentofuUtils as Utils 
+    from cloudicorn_opentofu import WrapOpentofu as WrapTf 
+else:
+    from cloudicorn.tfwrapper import Utils
+
 
 PACKAGE = "cloudicorn"
 LOG = True
@@ -30,7 +39,11 @@ def main(argv=[]):
 
     f = Figlet(font='slant')
 
-    parser = argparse.ArgumentParser(description='{}\nCLOUDICORN, facilitates terraform with nifty features n such.'.format(f.renderText('cloudicorn')),
+    backend_bin_name = "terraform"
+    if check_cloud_extension("opentofu"):
+        backend_bin_name = "opentofu"
+
+    parser = argparse.ArgumentParser(description='{}\nCLOUDICORN, facilitates {} with nifty features n such.'.format(f.renderText('cloudicorn'), backend_bin_name),
                                      add_help=True,
                                      epilog=epilog,
                                      formatter_class=argparse.RawTextHelpFormatter)
@@ -38,17 +51,23 @@ def main(argv=[]):
     # parser.ArgumentParser(usage='Any text you want\n')
 
     # subtle bug in ArgumentParser... nargs='?' doesn't work if you parse something other than sys.argv,
+
+
+
     parser.add_argument('command', default=None, nargs='*',
                         help='command to run (apply, destroy, plan, etc)')
 
     parser.add_argument('--project-dir', default=None,
                         help='optional project root dir')
     parser.add_argument('--downstream-args', default=None,
-                        help='optional arguments to pass downstream to terraform')
+                        help='optional arguments to pass downstream to {}'.format(backend_bin_name))
     parser.add_argument('--key', default=None,
                         help='optional remote state key to return')
     parser.add_argument('--set-var', action='append', nargs='+',
                         help='optional variable to override (usage: --set-var KEY=VALUE)')
+
+    parser.add_argument('--tf-bin-path', default=None,
+                        help='specify path to {}'.format(backend_bin_name))
 
     # booleans
     parser.add_argument('--clean', dest='clean',
@@ -72,9 +91,9 @@ def main(argv=[]):
     parser.add_argument('--list', action='store_true',
                         help='list components in project')
     parser.add_argument('--setup', action='store_true',
-                        help='Install terraform')
+                        help='Install binaries')
     parser.add_argument('--check-setup', action='store_true',
-                        help='Check if terraform is up to date')
+                        help='Check if binaries are up to date')
     parser.add_argument('--setup-shell', action='store_true',
                         help='Export a list of handy aliases to the shell.  Can be added to ~./bashrc')
     parser.add_argument('--debug', action='store_true',
@@ -94,14 +113,21 @@ def main(argv=[]):
         DEBUG = True
         log("debug mode enabled")
 
-    (out, err, exitcode) = run("which terraform")
-    terraform_path = None
-    if exitcode == 0:
-        terraform_path = out.strip()
+    tf_path = args.tf_bin_path
 
-    u = Utils(
-        terraform_path=terraform_path
-    )
+    if "TERRAFORM_BIN" in os.environ:
+        tf_path = os.getenv("TERRAFORM_BIN")
+
+    if "OPENTOFU_BIN" in os.environ:
+        tf_path = os.getenv("OPENTOFU_BIN")
+
+
+    # (out, err, exitcode) = run("which terraform")
+    # terraform_path = None
+    # if exitcode == 0:
+    #     terraform_path = out.strip()
+
+    u = Utils(tf_path=tf_path)
     u.setup(args)
 
     if args.setup_shell or args.check_setup or args.setup:
@@ -130,7 +156,7 @@ def main(argv=[]):
 
     project = Project(git_filtered=git_filtered,
                       project_vars=project_vars, wdir=args.project_dir)
-    wt = WrapTerraform(terraform_path=u.terraform_path)
+    wt = WrapTf(tf_path=u.tf_path)
     project.set_passphrases(tfstate_store_encryption_passphrases)
 
     if args.downstream_args != None:
@@ -148,8 +174,8 @@ def main(argv=[]):
     else:
         command = args.command[1]
 
-    if command == "terraform":
-        print(u.terraform_path)
+    if command == backend_bin_name:
+        print(u.tf_path)
         return 0
 
     CHECK_GIT = True
@@ -265,12 +291,12 @@ def main(argv=[]):
                     with open("{}/terraform.tfvars".format(project.tf_dir), "w") as fh:
                         fh.write(tfvars_hcl)
 
-                    # terraform init
-                    cmd = "{} init ".format(wt.tf_bin)
+                    # init
+                    cmd = "{} init ".format(u.tf_path)
 
                     exitcode = runshow(cmd, cwd=project.tf_dir)
                     if exitcode != 0:
-                        raise TerraformException(
+                        raise TFException(
                             "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
                     # requested command
@@ -293,7 +319,7 @@ def main(argv=[]):
                     # save tfstate
                     crs.push()
                     if exitcode != 0:
-                        raise TerraformException(
+                        raise TFException(
                             "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
                     return 0
@@ -324,7 +350,7 @@ def main(argv=[]):
                 # destroy in opposite order
                 components.reverse()
 
-            # run terraform per component
+            # run per component
             for component in components:
 
                 log("{} {} {}".format(PACKAGE, command, component))
@@ -334,7 +360,7 @@ def main(argv=[]):
                 if command == "show":
                     continue
 
-                debug("run terraform per component")
+                debug("run {} per component".format(backend_bin_name))
                 retcode = runshow(wt.get_command(
                     command=command, wdir=component))
 
@@ -351,7 +377,7 @@ def main(argv=[]):
                 out_dict = []
 
                 # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
-                wt = WrapTerraform(terraform_path=u.terraform_path)
+                wt = WrapTf(tf_path=u.tf_path)
                 if args.downstream_args != None:
                     wt.set_option(args.downstream_args)
 

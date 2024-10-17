@@ -17,20 +17,25 @@ Add Azure Support
 
 - `pip3 install cloudicorn_azurerm`
 
+Use [opentofu](https://opentofu.org/) instead of terraform
+
+- `pip3 install cloudicorn_opentofu`
+
 
 **or install by cloning repo**
 
 ```
 git clone https://github.com/jumidev/cloudicorn-cli.git
-cd cloudicorn-cli/cli
-make install_aws             # installs the cloudicorn CLI tool with python requirements for AWS
-make install_azurerm         # installs the cloudicorn CLI tool with python requirements for AWS
+cd cloudicorn-cli
+make install_aws             # installs AWS requirements
+make install_azurerm         # installs Azure Requirements
+make install_opentofu        # Use opentofu instead of terraform
 ```
 
 ### Initial setup
 
 ```
-cloudicorn_setup --install        # downloads and installs terraform
+cloudicorn_setup --install        # downloads and installs terraform (or opentofu)
 ```
 
 ## Bootstrapping a project
@@ -39,7 +44,6 @@ cloudicorn_setup --install        # downloads and installs terraform
 mkdir my_project && cd my_project
 cloudicorn_setup # select 'New Project' from main menu
 ```
-
 
 ### Installing & using terraform modules
 

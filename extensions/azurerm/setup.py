@@ -26,7 +26,7 @@ for matchNum, match in enumerate(matches, start=1):
 with open("requirements.txt", "r") as fh:
     install_requires = fh.readlines()
 
-release_version=os.environ["CLOUDICORN_RELEASE"]
+release_version=os.getenv("CLOUDICORN_RELEASE", "999.dev")
 
 setup(name='cloudicorn-azurerm',
     version=release_version,

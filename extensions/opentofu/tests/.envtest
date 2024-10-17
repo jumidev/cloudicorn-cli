@@ -1,5 +1,5 @@
 export CLOUDICORN_NO_GIT_CHECK=1
 export PYTHONWARNINGS=ignore
-export DEBUG=1
+
 source venv/bin/activate
 
