@@ -57,8 +57,8 @@ class TestBundles(unittest.TestCase):
         bundle = "dir1"
         p = tempfile.mkdtemp()
 
-        retcode = cloudicorn.main(["cloudicorn", "apply", "{}/{}".format(pdira, bundle), "--force", 
-                           "--set-var", "tfstate_store_path_a={}".format(p)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", bundle, "--force", 
+                           "--set-var", "tfstate_store_path_a={}".format(p), "--project-dir", pdira])
         
         assert retcode == 0 # all variables substituted
 

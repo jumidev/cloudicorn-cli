@@ -4,7 +4,7 @@
 import unittest
 import yaml
 import cloudicorn, cloudicorn.core
-from cloudicorn.core import hcldump, get_random_string
+from cloudicorn.core import hcldump, get_random_string, Project
 import hcl
 
 
@@ -59,13 +59,19 @@ class TestSanity(unittest.TestCase):
         assert retcode == 0 # all variables substituted
 
     def test_bundle(self):
-        retcode = cloudicorn.main(["cloudicorn", "parse", "mock/withvars"])
+        pdira = "mock"
+        bundle1 = "withvars"
+        project = Project(git_filtered=False,wdir=pdira)
+
+        assert project.component_type(bundle1) == "bundle"
+    
+        retcode = cloudicorn.main(["cloudicorn", "parse", "withvars", "--project-dir", "mock"])
         assert retcode == 0
 
     def test_bundle_dry(self):
-        retcode = cloudicorn.main(["cloudicorn", "apply", "mock/withvars", "--dry"])
+        retcode = cloudicorn.main(["cloudicorn", "parse", "withvars", "--project-dir", "mock", "--dry"])
         print(retcode)
-        assert retcode == None
+        assert retcode == 0
 
     def test_hcldump(self):
         l1 = ["horses", "dogs", 'cats', "mice", "owls"]

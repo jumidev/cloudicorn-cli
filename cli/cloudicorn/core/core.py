@@ -227,11 +227,8 @@ def run(cmd, splitlines=False, env=os.environ, raise_exception_on_fail=False, cw
     return (out, err, exitcode)
 
 
-def runshow(cmd, env=os.environ, cwd='.'):
+def runshow(cmd, env=os.environ, cwd='.', stdout = sys.stdout, stderr = sys.stderr):
     # you had better escape cmd cause it's goin to the shell as is
-
-    stdout = sys.stdout
-    stderr = sys.stderr
 
     if LOG != True:
         stdout = None
@@ -664,11 +661,29 @@ class Project():
         reordered_components = []
         for i in order:
             for c in components:
+                if c in reordered_components:
+                    continue
                 if self.component_type(c) == "component":
-                    if i in c:
-                        # match
-                        if c not in reordered_components:
-                            reordered_components.append(c)
+                    relpath = c[len(wdir)+1:]
+
+                    match = False
+                    if i == relpath:
+                        match = True
+
+                    # start and end wildcards
+                    elif i[-1] == "*" and i[0] == "*":
+                        if i[1:-1] in relpath:
+                            match = True
+
+                    elif i[-1] == "*":
+                        if relpath.startswith(i[0:-1]):
+                            match = True
+                    elif i[0] == "*":
+                        if relpath.endswith(i[1:]):
+                            match = True
+
+                    if match:
+                        reordered_components.append(c)
 
         return reordered_components
     

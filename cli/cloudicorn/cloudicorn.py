@@ -247,7 +247,7 @@ def main(argv=[]):
 
         t = project.component_type(component=cdir)
         if t == "component":
-            retcode = handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases)
+            retcode = handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases, True)
             return retcode
 
         elif t == "bundle":
@@ -256,6 +256,7 @@ def main(argv=[]):
             # parse first
             parse_status = []
             components = project.get_bundle(cdir)
+
             for component in components:
 
                 project.set_component_dir(component)
@@ -280,90 +281,20 @@ def main(argv=[]):
             # run per component
             for component in components:
                 project.set_component_dir(component)
-                handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases)
+                retcode = handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases, False)
+                if retcode != 0:
+                    # stop right here
+                    return retcode
 
-                # log("{} {} {}".format(PACKAGE, command, component))
-                # cmd = wt.get_command(command=command)
-
-                # debug("run {} per component".format(backend_bin_name))
-
-                # log(cmd)
-                # if args.dry:
-                #     continue
-
-                # if command == "show":
-                #     continue
-
-                # retcode = runshow(cmd, cwd=project.tf_dir)
-
-                # if retcode != 0:
-                #     log("Got a non zero return code running component {}, stopping bundle".format(
-                #         component))
-                #     return retcode
-
-            # if command in ['apply', "show"] and not args.dry:
-            #     log("")
-            #     log("")
-
-            #     # grab outputs of components
-            #     out_dict = []
-
-            #     # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
-            #     wt = WrapTf(tf_path=u.tf_path)
-            #     if args.downstream_args != None:
-            #         wt.set_option(args.downstream_args)
-
-            #     if args.json:
-            #         wt.set_option('-json')
-            #         wt.set_option('-no-color')
-
-            #     for component in components:
-
-            #         out, err, retcode = run(wt.get_command(
-            #             command="show"), cwd=component, raise_exception_on_fail=True)
-
-            #         if args.json:
-            #             d = json.loads(out)
-            #             out_dict.append({
-            #                 "component": component,
-            #                 "outputs": d["values"]["outputs"]})
-            #         else:
-            #             debug((out, err, retcode))
-
-            #             lines = []
-
-            #             p = False
-            #             for line in out.split("\n"):
-
-            #                 if p:
-            #                     lines.append("    {}".format(line))
-            #                 if line.strip().startswith('Outputs:'):
-            #                     debug("Outputs:; p = True")
-            #                     p = True
-
-            #             txt = "| {}".format(component)
-            #             print("-" * int(len(txt)+3))
-            #             print(txt)
-            #             print("-" * int(len(txt)+3))
-
-            #             if len(lines) > 0:
-            #                 print("  Outputs:")
-            #                 print("")
-            #                 for line in lines:
-            #                     print(line)
-
-            #             else:
-            #                 print("No remote state found")
-            #             print("")
-            #     if args.json:
-            #         print(json.dumps(out_dict, indent=4))
+            return retcode
+                
 
         else:
             log("ERROR {}: this directory is neither a component nor a bundle, nothing to do".format(cdir))
             return 130
 
 
-def handle_component(project: Project, command : str, args, wt: WrapTf, u: Utils, tfstate_store_encryption_passphrases : list=[]):
+def handle_component(project: Project, command : str, args, wt: WrapTf, u: Utils, tfstate_store_encryption_passphrases : list=[], showrun : bool=False):
     project.save_parsed_component()
 
     if command == "showvars":
@@ -414,7 +345,11 @@ def handle_component(project: Project, command : str, args, wt: WrapTf, u: Utils
             # init
             cmd = "{} init ".format(u.tf_path)
 
-            exitcode = runshow(cmd, cwd=project.tf_dir)
+            if showrun:
+                exitcode = runshow(cmd, cwd=project.tf_dir)
+            else:
+                exitcode = runshow(cmd, cwd=project.tf_dir, stdout=None, stderr=None)
+
             if exitcode != 0:
                 raise TFException(
                     "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
@@ -424,7 +359,10 @@ def handle_component(project: Project, command : str, args, wt: WrapTf, u: Utils
 
             cmd = wt.get_command(command, extra_args)
 
-            exitcode = runshow(cmd, cwd=project.tf_dir)
+            if showrun:
+                exitcode = runshow(cmd, cwd=project.tf_dir)
+            else:
+                exitcode = runshow(cmd, cwd=project.tf_dir, stdout=None, stderr=None)
 
             # our work is done here
             if command in ["refresh", "plan"]:
@@ -442,7 +380,7 @@ def handle_component(project: Project, command : str, args, wt: WrapTf, u: Utils
                 raise TFException(
                     "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
 
-            return 0
+    return 0
 
 
 def cli_entrypoint():
