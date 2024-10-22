@@ -288,7 +288,6 @@ def main(argv=[]):
 
                 if not args.dry:
                     project.setup_component_source()
-
                     project.setup_component_file_overrides()
 
                     tfvars_hcl = hcldump(project.component_inputs)

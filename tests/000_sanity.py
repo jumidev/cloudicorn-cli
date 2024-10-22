@@ -65,7 +65,12 @@ class TestSanity(unittest.TestCase):
     def test_bundle_dry(self):
         retcode = cloudicorn.main(["cloudicorn", "apply", "mock/withvars", "--dry"])
         print(retcode)
-        assert retcode == None
+        assert retcode == 0
+
+    def test_bundle_apply(self):
+        retcode = cloudicorn.main(["cloudicorn", "apply", "mock/withvars"])
+        print(retcode)
+        assert retcode == 0
 
     def test_hcldump(self):
         l1 = ["horses", "dogs", 'cats', "mice", "owls"]
