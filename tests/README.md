@@ -45,6 +45,9 @@ docker run -it test-cloudicorn
 - component_inputs, add support for blocks.
       e.g. in network_security_group, inputs
       
+- test bundles (broken!!)
+- when no component provided, list of components should be in order
+
 - add exitcodes in custom exceptions incloudicorn.core, catch them in tb
 - test tb showvars
 - test tb --key

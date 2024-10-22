@@ -6,6 +6,7 @@ import os
 import sys
 import argparse
 from pyfiglet import Figlet
+import git
 from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, check_cloud_extension
 from cloudicorn.core import Project
 from cloudicorn.tfwrapper import WrapTerraform as WrapTf
@@ -31,7 +32,6 @@ def main(argv=[]):
     export CLOUDICORN_APPROVE=y                 # activates --yes
     export CLOUDICORN_GIT_CHECK=y               # activates --git-check
     export CLOUDICORN_NO_GIT_CHECK=y            # activates --no-git-check
-    export CLOUDICORN_MODULES_PATH              # required if using --dev
     export CLOUDICORN_GIT_FILTER                # when displaying components, only show those which have uncomitted git files
     export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE #if set, passphrase to encrypt and decrypt remote state files at rest
     """
@@ -191,10 +191,13 @@ def main(argv=[]):
 
     # check git
     if CHECK_GIT:
-        gitstatus = git_check()
-        if gitstatus != 0:
-            return gitstatus
-
+        try:
+            gitstatus = git_check()
+            if gitstatus != 0:
+                return gitstatus
+        except git.exc.GitCommandError:
+            pass
+    
     # TODO add "env" command to show the env vars with optional --export command for exporting to bash env vars
 
     if command == "format":
@@ -244,85 +247,8 @@ def main(argv=[]):
 
         t = project.component_type(component=cdir)
         if t == "component":
-            project.save_parsed_component()
-
-            if command == "showvars":
-                if args.json:
-                    print(json.dumps(project.vars, indent=4))
-                else:
-                    keys = list(project.vars.keys())  # .sorted()
-                    keys.sort()
-                    for k in keys:
-                        print("{}={}".format(k, project.vars[k]))
-                    # print(json.dumps(project.vars, indent=4))
-                return 0
-
-            if project.parse_status != True:
-                print(project.parse_status)
-                return (120)
-
-            if command == "parse":
-                # we have parsed, our job here is done
-                return 0
-
-            check = project.check_parsed_file(
-                require_tfstate_store_block=not args.allow_no_tfstate_store)
-            if check != True:
-                print("An error was found after parsing {}: {}".format(
-                    project.outfile, check))
-                return 110
-
-            if args.key != None:
-                project.setup_component_tfstore()
-                # rs = TfStateReader()
-                print(project.component.get_output(args.key))
-                return 0
-            else:
-                if args.json:
-                    wt.set_option('-json')
-                    wt.set_option('-no-color')
-
-                if not args.dry:
-                    project.setup_component_source()
-
-                    project.setup_component_file_overrides()
-
-                    tfvars_hcl = hcldump(project.component_inputs)
-                    with open("{}/terraform.tfvars".format(project.tf_dir), "w") as fh:
-                        fh.write(tfvars_hcl)
-
-                    # init
-                    cmd = "{} init ".format(u.tf_path)
-
-                    exitcode = runshow(cmd, cwd=project.tf_dir)
-                    if exitcode != 0:
-                        raise TFException(
-                            "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
-
-                    # requested command
-                    extra_args = ['-state=terraform.tfstate']
-
-                    cmd = wt.get_command(command, extra_args)
-
-                    exitcode = runshow(cmd, cwd=project.tf_dir)
-
-                    # our work is done here
-                    if command in ["refresh", "plan"]:
-                        return 0
-
-                    crs = project.componenttfstore
-                    if tfstate_store_encryption_passphrases != []:
-                        crs.set_passphrases(
-                            tfstate_store_encryption_passphrases)
-                        crs.encrypt()
-
-                    # save tfstate
-                    crs.push()
-                    if exitcode != 0:
-                        raise TFException(
-                            "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
-
-                    return 0
+            retcode = handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases)
+            return retcode
 
         elif t == "bundle":
             log("Performing {} on bundle {}".format(command, cdir))
@@ -331,6 +257,7 @@ def main(argv=[]):
             parse_status = []
             components = project.get_bundle(cdir)
             for component in components:
+
                 project.set_component_dir(component)
                 project.parse_component()
                 project.save_parsed_component()
@@ -352,83 +279,170 @@ def main(argv=[]):
 
             # run per component
             for component in components:
+                project.set_component_dir(component)
+                handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases)
 
-                log("{} {} {}".format(PACKAGE, command, component))
-                if args.dry:
-                    continue
+                # log("{} {} {}".format(PACKAGE, command, component))
+                # cmd = wt.get_command(command=command)
 
-                if command == "show":
-                    continue
+                # debug("run {} per component".format(backend_bin_name))
 
-                debug("run {} per component".format(backend_bin_name))
-                retcode = runshow(wt.get_command(
-                    command=command, wdir=component))
+                # log(cmd)
+                # if args.dry:
+                #     continue
 
-                if retcode != 0:
-                    log("Got a non zero return code running component {}, stopping bundle".format(
-                        component))
-                    return retcode
+                # if command == "show":
+                #     continue
 
-            if command in ['apply', "show"] and not args.dry:
-                log("")
-                log("")
+                # retcode = runshow(cmd, cwd=project.tf_dir)
 
-                # grab outputs of components
-                out_dict = []
+                # if retcode != 0:
+                #     log("Got a non zero return code running component {}, stopping bundle".format(
+                #         component))
+                #     return retcode
 
-                # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
-                wt = WrapTf(tf_path=u.tf_path)
-                if args.downstream_args != None:
-                    wt.set_option(args.downstream_args)
+            # if command in ['apply', "show"] and not args.dry:
+            #     log("")
+            #     log("")
 
-                if args.json:
-                    wt.set_option('-json')
-                    wt.set_option('-no-color')
+            #     # grab outputs of components
+            #     out_dict = []
 
-                for component in components:
+            #     # fresh instance of WrapTerraform to clear out any options from above that might conflict with show
+            #     wt = WrapTf(tf_path=u.tf_path)
+            #     if args.downstream_args != None:
+            #         wt.set_option(args.downstream_args)
 
-                    out, err, retcode = run(wt.get_command(
-                        command="show", wdir=component), raise_exception_on_fail=True)
+            #     if args.json:
+            #         wt.set_option('-json')
+            #         wt.set_option('-no-color')
 
-                    if args.json:
-                        d = json.loads(out)
-                        out_dict.append({
-                            "component": component,
-                            "outputs": d["values"]["outputs"]})
-                    else:
-                        debug((out, err, retcode))
+            #     for component in components:
 
-                        lines = []
+            #         out, err, retcode = run(wt.get_command(
+            #             command="show"), cwd=component, raise_exception_on_fail=True)
 
-                        p = False
-                        for line in out.split("\n"):
+            #         if args.json:
+            #             d = json.loads(out)
+            #             out_dict.append({
+            #                 "component": component,
+            #                 "outputs": d["values"]["outputs"]})
+            #         else:
+            #             debug((out, err, retcode))
 
-                            if p:
-                                lines.append("    {}".format(line))
-                            if line.strip().startswith('Outputs:'):
-                                debug("Outputs:; p = True")
-                                p = True
+            #             lines = []
 
-                        txt = "| {}".format(component)
-                        print("-" * int(len(txt)+3))
-                        print(txt)
-                        print("-" * int(len(txt)+3))
+            #             p = False
+            #             for line in out.split("\n"):
 
-                        if len(lines) > 0:
-                            print("  Outputs:")
-                            print("")
-                            for line in lines:
-                                print(line)
+            #                 if p:
+            #                     lines.append("    {}".format(line))
+            #                 if line.strip().startswith('Outputs:'):
+            #                     debug("Outputs:; p = True")
+            #                     p = True
 
-                        else:
-                            print("No remote state found")
-                        print("")
-                if args.json:
-                    print(json.dumps(out_dict, indent=4))
+            #             txt = "| {}".format(component)
+            #             print("-" * int(len(txt)+3))
+            #             print(txt)
+            #             print("-" * int(len(txt)+3))
+
+            #             if len(lines) > 0:
+            #                 print("  Outputs:")
+            #                 print("")
+            #                 for line in lines:
+            #                     print(line)
+
+            #             else:
+            #                 print("No remote state found")
+            #             print("")
+            #     if args.json:
+            #         print(json.dumps(out_dict, indent=4))
 
         else:
             log("ERROR {}: this directory is neither a component nor a bundle, nothing to do".format(cdir))
             return 130
+
+
+def handle_component(project: Project, command : str, args, wt: WrapTf, u: Utils, tfstate_store_encryption_passphrases : list=[]):
+    project.save_parsed_component()
+
+    if command == "showvars":
+        if args.json:
+            print(json.dumps(project.vars, indent=4))
+        else:
+            keys = list(project.vars.keys())  # .sorted()
+            keys.sort()
+            for k in keys:
+                print("{}={}".format(k, project.vars[k]))
+            # print(json.dumps(project.vars, indent=4))
+        return 0
+
+    if project.parse_status != True:
+        print(project.parse_status)
+        return (120)
+
+    if command == "parse":
+        # we have parsed, our job here is done
+        return 0
+
+    check = project.check_parsed_file(
+        require_tfstate_store_block=not args.allow_no_tfstate_store)
+    if check != True:
+        print("An error was found after parsing {}: {}".format(
+            project.outfile, check))
+        return 110
+
+    if args.key != None:
+        project.setup_component_tfstore()
+        # rs = TfStateReader()
+        print(project.component.get_output(args.key))
+        return 0
+    else:
+        if args.json:
+            wt.set_option('-json')
+            wt.set_option('-no-color')
+
+        if not args.dry:
+            project.setup_component_source()
+
+            project.setup_component_file_overrides()
+
+            tfvars_hcl = hcldump(project.component_inputs)
+            with open("{}/terraform.tfvars".format(project.tf_dir), "w") as fh:
+                fh.write(tfvars_hcl)
+
+            # init
+            cmd = "{} init ".format(u.tf_path)
+
+            exitcode = runshow(cmd, cwd=project.tf_dir)
+            if exitcode != 0:
+                raise TFException(
+                    "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
+
+            # requested command
+            extra_args = ['-state=terraform.tfstate']
+
+            cmd = wt.get_command(command, extra_args)
+
+            exitcode = runshow(cmd, cwd=project.tf_dir)
+
+            # our work is done here
+            if command in ["refresh", "plan"]:
+                return 0
+
+            crs = project.componenttfstore
+            if tfstate_store_encryption_passphrases != []:
+                crs.set_passphrases(
+                    tfstate_store_encryption_passphrases)
+                crs.encrypt()
+
+            # save tfstate
+            crs.push()
+            if exitcode != 0:
+                raise TFException(
+                    "\ndir={}\ncmd={}".format(project.tf_dir, cmd))
+
+            return 0
 
 
 def cli_entrypoint():

@@ -268,9 +268,13 @@ def flatwalk_up(haystack, needle):
 
 
 def flatwalk(path):
+    paths = []
     for (folder, b, c) in os.walk(path):
         for fn in c:
-            yield (folder, fn)
+            paths.append((folder, fn))
+            
+    for folder, fn in sorted(paths):
+        yield (folder, fn)
 
 
 def clean_cache(d, olderthan_days=30):
@@ -631,39 +635,43 @@ class Project():
     def get_bundle(self, wdir):
         components = []
 
-        if wdir[-1] == "*":
-            debug("")
-            debug("get_bundle wdir {}".format(wdir))
-            wdir = os.path.relpath(wdir[0:-1])
-            for which, c, match in self.get_components():
-                if c.startswith(wdir):
-                    components.append(c)
+        debug("")
+        debug("get_bundle wdir {}".format(wdir))
 
-                    debug("get_bundle  {}".format(c))
-            debug("")
-            return components
+        for c in self.get_components():
+            if c[1] == wdir:
+                # exclude bundle from self
+                continue
+            if c[1].startswith(wdir):
+                components.append(c[1])
 
-        bundleyml = '{}/{}'.format(wdir, "bundle.yml")
-
-        if not os.path.isfile(bundleyml):
-            return [wdir]
+                debug("get_bundle  {}".format(c))
+        debug("")
+                    
+        bundleyml = '{}/{}/{}'.format(self.project_root, wdir, "bundle.yml")
 
         with open(bundleyml, 'r') as fh:
             d = yaml.load(fh, Loader=yaml.FullLoader)
 
-        order = d['order']
+        try:
+            order = d['order']
+        except:
+            return components
 
-        if type(order) == list:
-            for i in order:
-                component = "{}/{}".format(wdir, i)
-                if self.component_type(component) == "component":
-                    components.append(component)
-                else:
-                    for c in self.get_bundle(component):
-                        components.append(c)
+        if type(order) != list:
+            return components
 
-        return components
+        reordered_components = []
+        for i in order:
+            for c in components:
+                if self.component_type(c) == "component":
+                    if i in c:
+                        # match
+                        if c not in reordered_components:
+                            reordered_components.append(c)
 
+        return reordered_components
+    
     def check_hclt_files(self):
         for f in self.get_files():
             debug("check_hclt_files() checking {}".format(f))
