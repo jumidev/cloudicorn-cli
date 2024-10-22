@@ -6,6 +6,7 @@ import os
 import sys
 import argparse
 from pyfiglet import Figlet
+import git
 from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, check_cloud_extension
 from cloudicorn.core import Project
 from cloudicorn.tfwrapper import WrapTerraform as WrapTf
@@ -191,9 +192,12 @@ def main(argv=[]):
 
     # check git
     if CHECK_GIT:
-        gitstatus = git_check()
-        if gitstatus != 0:
-            return gitstatus
+        try:
+            gitstatus = git_check()
+            if gitstatus != 0:
+                return gitstatus
+        except git.exc.GitCommandError:
+            pass
 
     # TODO add "env" command to show the env vars with optional --export command for exporting to bash env vars
 

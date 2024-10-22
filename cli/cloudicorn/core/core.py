@@ -268,9 +268,13 @@ def flatwalk_up(haystack, needle):
 
 
 def flatwalk(path):
+    paths = []
     for (folder, b, c) in os.walk(path):
         for fn in c:
-            yield (folder, fn)
+            paths.append((folder, fn))
+            
+    for folder, fn in sorted(paths):
+        yield (folder, fn)
 
 
 def clean_cache(d, olderthan_days=30):
