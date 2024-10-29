@@ -244,24 +244,24 @@ def runshow(cmd, env=os.environ, cwd='.', stdout = sys.stdout, stderr = sys.stde
 
 
 def flatwalk_up(haystack, needle):
-    results = []
     spl = needle.split("/")
     needle_parts = [spl.pop(0)]
     for s in spl:
-        add = "/".join([needle_parts[-1], s])
+        add = os.path.join(needle_parts[-1], s)
         needle_parts.append(add)
 
-    for (folder, fn) in flatwalk(haystack):
-        for n in needle_parts:
-            if folder.endswith(n):
-                results.append((folder, fn))
-                break
-        if folder == haystack:
-            results.append((folder, fn))
+    needle_parts.insert(0, "")
 
-    for (folder, fn) in results:
-        debug((folder, fn))
-        yield (folder, fn)
+    for n in needle_parts:
+        l = os.listdir(os.path.join(haystack, n))
+        for i in sorted(l):
+            if os.path.isfile(os.path.join(haystack,n,i)):
+                yield (os.path.join(haystack,n), i)
+
+
+    # for (folder, fn) in results:
+    #     debug((folder, fn))
+    #     yield (folder, fn)
 
 
 def flatwalk(path):
@@ -501,6 +501,23 @@ class Project():
     def project_root(self):
         return os.path.abspath(self.wdir)
 
+    # verify that the cwd or wdir contains a project.yml
+    def check_project_dir(self):
+        f = os.path.join(self.project_root, self.conf_marker)
+        if os.path.isfile(f):
+            return True
+        
+        return False
+    
+    # given a component path, walk up filesystem looking for project.yml
+    def find_project_root(self, component):
+        for (folder, fn) in flatwalk_up(self.project_root, component):
+            if fn == self.conf_marker:
+                apath = os.path.abspath(folder)
+                return apath, os.path.relpath(component, apath)
+
+        raise ProjectException("Could not find project root given component path {}".format(component))
+    
     def set_passphrases(self, passphrases=[]):
         self.passphrases = passphrases
 

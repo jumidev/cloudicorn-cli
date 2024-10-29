@@ -8,7 +8,7 @@ import argparse
 from pyfiglet import Figlet
 import git
 from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, check_cloud_extension
-from cloudicorn.core import Project
+from cloudicorn.core import Project, ProjectException
 from cloudicorn.tfwrapper import WrapTerraform as WrapTf
 from cloudicorn.tfwrapper import TFException
 
@@ -156,6 +156,19 @@ def main(argv=[]):
 
     project = Project(git_filtered=git_filtered,
                       project_vars=project_vars, wdir=args.project_dir)
+    
+    if not project.check_project_dir():
+        try:
+            cdir = args.command[2]
+            folder, component_reldir = project.find_project_root(cdir)
+            project.wdir=folder
+            # update cdir to point to component relative to newly found
+            # project root
+            args.command[2] = component_reldir
+            cdir = component_reldir
+        except:
+            raise ProjectException("{} does not appear to be a cloudicorn project".format(project.project_root))
+
     wt = WrapTf(tf_path=u.tf_path)
     project.set_passphrases(tfstate_store_encryption_passphrases)
 
@@ -224,7 +237,7 @@ def main(argv=[]):
             log("ERROR: {} is not a directory".format(cdir))
             return -1
 
-        project.set_component_dir(cdir)
+        # project.set_component_dir(cdir)
 
         # cdir_slug = cdir.replace('/', '_')
         # tf_wdir_p = get_cloudicorn_cachedir(project.project_root+cdir_slug)
@@ -247,6 +260,8 @@ def main(argv=[]):
 
         t = project.component_type(component=cdir)
         if t == "component":
+            project.set_component_dir(cdir)
+            project.parse_component()
             retcode = handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases, True)
             return retcode
 
