@@ -13,6 +13,8 @@ TEST_AZURE_STORAGE_CONTAINER = os.getenv("TEST_AZURE_STORAGE_CONTAINER", None)
 class TestAzureRgStateStore(unittest.TestCase):
 
     def setUp(self):
+        self.project_args=["--project-dir", "components"]
+
         assert_azurerm_sp_creds()
         assert TEST_AZURE_STORAGE_ACCOUNT != None
         assert TEST_AZURE_STORAGE_CONTAINER != None
@@ -26,13 +28,13 @@ class TestAzureRgStateStore(unittest.TestCase):
 
     def test_rg(self):
 
-        cdir = "components/resource_group"
+        cdir = "resource_group"
 
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string), *self.project_args])
         assert retcode == 0
 
         # second apply, should not change anything
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string), *self.project_args])
         assert retcode == 0
 
 if __name__ == '__main__':

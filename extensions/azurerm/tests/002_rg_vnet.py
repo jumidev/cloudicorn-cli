@@ -15,6 +15,8 @@ TEST_AZURE_STORAGE_CONTAINER = os.getenv("TEST_AZURE_STORAGE_CONTAINER", None)
 class TestAzureRgVnetStateStore(unittest.TestCase):
 
     def setUp(self):
+        self.project_args=["--project-dir", "components"]
+
         assert_azurerm_sp_creds()
         assert TEST_AZURE_STORAGE_ACCOUNT != None
         assert TEST_AZURE_STORAGE_CONTAINER != None
@@ -23,42 +25,41 @@ class TestAzureRgVnetStateStore(unittest.TestCase):
         self.run_string2 = get_random_string(10)
         self.azure_utils = AzureUtils()
         self.resource_client =  self.azure_utils.resource_client
-        cdir = "components/resource_group_vnet"
+        cdir = "resource_group_vnet"
 
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string), *self.project_args])
         assert retcode == 0
 
-        cdir = "components/resource_group_vnet"
-
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string2)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string2), *self.project_args])
         assert retcode == 0
 
     def tearDown(self):
+        print("cleaning up resource groups...")
         self.resource_client.resource_groups.begin_delete("test_{}".format(self.run_string))
         self.resource_client.resource_groups.begin_delete("test_{}".format(self.run_string2))
 
     def test_vnet_asg_etc_success(self):
         cdirs = [
-            "components/virtual_network",
-            "components/asg",
-            "components/nsg",
-            "components/subnet"
+            "virtual_network",
+            "asg",
+            "nsg",
+            "subnet"
         ]
         for cdir in cdirs: 
 
-            retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+            retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string), *self.project_args])
             assert retcode == 0
 
     def test_vnet_asg_etc_fail_then_success(self):
 
-        cdir = "components/nsg_failapply"
+        cdir = "nsg_failapply"
         try:
-            retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=300', '--set-var', "run_id={}".format(self.run_string2)])
+            retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=300', '--set-var', "run_id={}".format(self.run_string2), *self.project_args])
             assert False
         except TFException:
             pass
     
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=301', '--set-var', "run_id={}".format(self.run_string2)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'fail_rule_priority=301', '--set-var', "run_id={}".format(self.run_string2), *self.project_args])
         assert retcode == 0
 
 if __name__ == '__main__':

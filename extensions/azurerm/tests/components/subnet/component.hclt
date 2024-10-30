@@ -9,9 +9,9 @@ inputs {
 }
 
 component_inputs {
-	resource_group_name = "components/resource_group_vnet"
-	virtual_network_name = "components/virtual_network"
-	network_security_group_id = "components/nsg"
+	resource_group_name = "resource_group_vnet"
+	virtual_network_name = "virtual_network"
+	network_security_group_id = "nsg"
 }
 
 tfstate_store {
