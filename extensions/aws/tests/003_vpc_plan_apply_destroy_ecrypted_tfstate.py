@@ -52,8 +52,10 @@ class TestAwsPlanVpcEncrypted(unittest.TestCase):
 
         random_passphrase = get_random_string(32)
 
-        os.environ["CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE"] = random_passphrase
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force',
+                                    "--tfstate-store-encryption-passphrase", random_passphrase,
+                                     '--set-var', 
+                                   "run_id={}".format(self.run_string)])
         assert retcode == 0
 
         # assert vpc exists
@@ -66,19 +68,21 @@ class TestAwsPlanVpcEncrypted(unittest.TestCase):
         assert count == 1
 
         # check that remote state is present on s3
-        project = Project(git_filtered=False, project_vars={'run_id': self.run_string})
-        project.set_component_dir(cdir)
+        project = Project(git_filtered=False, project_vars={'run_id': self.run_string}, wdir="components")
+        project.set_component_dir("vpc_tfstate")
+        project.set_passphrases(random_passphrase)
         project.parse_component()
         obj = hcl.loads(project.hclfile)
 
         crs = TfStateStoreAwsS3(args=obj["tfstate_store"], localpath=tfstate_file)
-
         crs.fetch()
 
         assert crs.is_encrypted
 
         # now destroy
-        retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', 
+         "--tfstate-store-encryption-passphrase", random_passphrase,
+        '--set-var', "run_id={}".format(self.run_string)])
         assert retcode == 0
 
         # assert vpc gone

@@ -68,7 +68,8 @@ def main(argv=[]):
 
     parser.add_argument('--tf-bin-path', default=None,
                         help='specify path to {}'.format(backend_bin_name))
-
+    parser.add_argument('--tfstate-store-encryption-passphrase', default=None,
+                        help='specify encryption / decryption passphrase for tfstate store')
     # booleans
     parser.add_argument('--clean', dest='clean',
                         action='store_true', help='clear all cache')
@@ -135,6 +136,8 @@ def main(argv=[]):
 
     # grab args
     tfstate_store_encryption_passphrases = []
+    if args.tfstate_store_encryption_passphrase != None:
+        tfstate_store_encryption_passphrases.append(args.tfstate_store_encryption_passphrase)
     e = list(os.environ.keys())
     e.sort()
 

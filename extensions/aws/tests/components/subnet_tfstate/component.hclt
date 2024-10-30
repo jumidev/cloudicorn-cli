@@ -14,5 +14,5 @@ tfstate_store {
 }
 
 component_inputs {
-	vpc_id = "components/vpc_tfstate"
+	vpc_id = "vpc_tfstate"
 }

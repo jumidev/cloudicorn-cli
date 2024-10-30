@@ -22,7 +22,8 @@ def get_random_string(length):
 class TestAwsPlanVpc(unittest.TestCase):
 
     def setUp(self):       
-        
+        self.project_args=["--project-dir", "components"]
+
         self.boto_client = boto3.client('ec2')
         assert TEST_S3_BUCKET != None
 
@@ -41,7 +42,7 @@ class TestAwsPlanVpc(unittest.TestCase):
             )        
 
     def test_plan(self):
-        retcode = cloudicorn.main(["cloudicorn", "plan", "components/vpc", "--allow-no-tfstate-store"])
+        retcode = cloudicorn.main(["cloudicorn", "plan", "vpc", "--allow-no-tfstate-store", *self.project_args])
         assert retcode == 0
 
     def describe_vpcs(self):
@@ -51,9 +52,10 @@ class TestAwsPlanVpc(unittest.TestCase):
         d = tempfile.mkdtemp()
         tfstate_file = "{}/terraform.tfstate".format(d)
 
-        cdir = "components/vpc_tfstate"
 
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        cdir = "vpc_tfstate"
+
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force','--set-var', "run_id={}".format(self.run_string), *self.project_args])
         assert retcode == 0
 
         # assert vpc exists
@@ -66,7 +68,7 @@ class TestAwsPlanVpc(unittest.TestCase):
         assert count == 1
 
         # check that remote state is present on s3
-        project = Project(git_filtered=False, project_vars={'run_id': self.run_string})
+        project = Project(git_filtered=False, wdir="components", project_vars={'run_id': self.run_string})
         project.set_component_dir(cdir)
         project.parse_component()
         obj = hcl.loads(project.hclfile)
@@ -81,11 +83,11 @@ class TestAwsPlanVpc(unittest.TestCase):
         assert rs["outputs"]["name"]["value"] == "example vpc {}".format(self.run_string)
 
         # apply again, should return 0
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', "run_id={}".format(self.run_string), *self.project_args])
         assert retcode == 0
 
         # now destroy
-        retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', '--set-var', "run_id={}".format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', '--set-var', "run_id={}".format(self.run_string), *self.project_args])
         assert retcode == 0
 
         # assert vpc gone

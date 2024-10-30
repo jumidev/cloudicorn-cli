@@ -22,3 +22,6 @@ test_last: setup
 
 test_TEST_FILTER: setup
 	source .envtest && python3 -m pytest $(TEST_FILTER)
+
+debug_TEST_FILTER: setup
+	source .envtest && python3 -m debugpy --listen 5678  --wait-for-client -m pytest $(TEST_FILTER)*

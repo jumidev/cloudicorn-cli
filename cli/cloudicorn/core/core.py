@@ -513,13 +513,19 @@ class Project():
     def find_project_root(self, component):
         for (folder, fn) in flatwalk_up(self.project_root, component):
             if fn == self.conf_marker:
-                apath = os.path.abspath(folder)
+                apath = os.path.abspath(folder)                
                 return apath, os.path.relpath(component, apath)
 
         raise ProjectException("Could not find project root given component path {}".format(component))
     
     def set_passphrases(self, passphrases=[]):
-        self.passphrases = passphrases
+        if type(passphrases) == str:
+            self.passphrases = [passphrases]
+        elif type(passphrases) == list:
+            self.passphrases = passphrases
+        else:
+            raise ProjectException("set_passphrases: must provide a string or list of strings")
+        
 
     def set_tf_dir(self, dir):
         self.tf_dir = dir
@@ -998,11 +1004,8 @@ class Project():
 
     @property
     def component_path(self):
-        abswdir = os.path.abspath(self.component_dir)
-        absroot = self.project_root
-
-        return abswdir[len(absroot)+1:]
-
+        return self.component_dir
+    
     @property
     def root_wdir(self):
         tf_wdir = self.tf_dir
@@ -1095,6 +1098,9 @@ class Project():
         return msg
 
     def parse_component(self):
+
+        if not self.check_project_dir():
+            raise ProjectException("{} does not appear to be a cloudicorn project".format(self.project_root))
 
         self.check_hclt_files()
         self.get_yml_vars()
@@ -1439,14 +1445,18 @@ class TfStateStore():
     @property
     def is_encrypted(self):
 
-        try:
+        if os.path.isfile(self.localpath):
             with open(self.localpath, 'r') as fh:
-                obj = json.load(fh)
+                try:
+                    obj = json.load(fh)
+                except json.JSONDecodeError:
+                    return False
+                except Exception as e:
+                    raise Exception(self.localpath, e)
 
             if "ciphertext" in obj:
                 return True
-        except:
-            pass
+
 
         return False
 

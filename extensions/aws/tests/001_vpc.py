@@ -17,8 +17,8 @@ class TestAwsVpc(unittest.TestCase):
     def test_vpc_fetch_source(self):
         p = tempfile.mkdtemp()
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("components/vpc")
+        project = Project(git_filtered=False, wdir="components")
+        project.set_component_dir("vpc")
         project.set_tf_dir(p)
         project.save_parsed_component()
         assert os.path.isfile("{}/component.hcl".format(p))

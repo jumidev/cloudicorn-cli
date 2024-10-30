@@ -18,8 +18,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_path(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/filepath")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/filepath")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -32,8 +32,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_gitssh(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/git")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/git")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -59,8 +59,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -73,8 +73,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp_branch(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -89,8 +89,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp_branch_fail(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -106,8 +106,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp_fail_subdir(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -123,8 +123,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp_tag(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -136,8 +136,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp_tag_wildcard(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()
@@ -150,8 +150,8 @@ class TestComponentSource(unittest.TestCase):
 
     def test_mock_component_source_githttp_tag_fail(self):
 
-        project = Project(git_filtered=False)
-        project.set_component_dir("mock/mocksource/githttp")
+        project = Project(git_filtered=False, wdir="mock")
+        project.set_component_dir("mocksource/githttp")
         project.parse_component()
         obj = hcl.loads(project.hclfile)
         p = tempfile.mkdtemp()

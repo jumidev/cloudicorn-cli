@@ -33,8 +33,8 @@ class TestAwsS3StateStore(unittest.TestCase):
         with open(tfstate_file, 'w') as fh:
             fh.write(random_string)
 
-        project = Project(git_filtered=False)
-        cdir = "components/vpc"
+        project = Project(git_filtered=False, wdir="components")
+        cdir = "vpc"
         project.set_component_dir(cdir)
         project.parse_component()
         obj = hcl.loads(project.hclfile)
@@ -64,8 +64,8 @@ class TestAwsS3StateStore(unittest.TestCase):
         with open(tfstate_file, 'w') as fh:
             fh.write(random_string)
 
-        project = Project(git_filtered=False)
-        cdir = "components/vpc"
+        project = Project(git_filtered=False, wdir="components")
+        cdir = "vpc"
         project.set_component_dir(cdir)
 
         crs = TfStateStoreAwsS3(args={}, localpath=tfstate_file)

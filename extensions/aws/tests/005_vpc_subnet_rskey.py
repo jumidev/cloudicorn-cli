@@ -23,7 +23,8 @@ class TestAwsVpcSubnet(unittest.TestCase):
 
     def setUp(self):
         # make copy of env vars
-        
+        self.project_args=["--project-dir", "components"]
+
         self.boto_client = boto3.client('ec2')
         assert TEST_S3_BUCKET != None
 
@@ -32,15 +33,15 @@ class TestAwsVpcSubnet(unittest.TestCase):
         assert_aws_creds()
 
         # make vpc
-        cdir = "components/vpc_tfstate"
+        cdir = "vpc_tfstate"
 
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string), *self.project_args])
         assert retcode == 0
 
     def tearDown(self):
-        cdir = "components/subnet_tfstate"
+        cdir = "subnet_tfstate"
 
-        retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "destroy", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string), *self.project_args])
         assert retcode == 0
 
         response = self.describe_subnets()
@@ -68,31 +69,31 @@ class TestAwsVpcSubnet(unittest.TestCase):
         return self.boto_client.describe_subnets(Filters=[{'Name':'tag:Name','Values':["example subnet {}".format(self.run_string)]}])
     
     def test_apply_subnet_success(self):
-        cdir = "components/subnet_tfstate"
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
+        cdir = "subnet_tfstate"
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string), *self.project_args])
         assert retcode == 0
 
         # second apply, should also succeed with no changes
-        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string)])
+        retcode = cloudicorn.main(["cloudicorn", "apply", cdir, '--force', '--set-var', 'run_id={}'.format(self.run_string), *self.project_args])
         assert retcode == 0
 
     def test_apply_delete_subnet_failmode_not_a_component(self):
-        cdir = "components/subnet_tfstate_fail"
+        cdir = "subnet_tfstate_fail"
         try:
             cloudicorn.main(["cloudicorn", "apply", cdir, '--force',
                     '--set-var', 'run_id={}'.format(self.run_string),
-                    '--set-var', 'tfstate_link=FAIL'
+                    '--set-var', 'tfstate_link=FAIL', *self.project_args
                     ])
             assert False
         except ComponentException as e:
             assert "must point to a component" in str(e)
 
     def test_apply_delete_subnet_failmode_no_such_tfstate_output(self):
-        cdir = "components/subnet_tfstate_fail"
+        cdir = "subnet_tfstate_fail"
         try:
             cloudicorn.main(["cloudicorn", "apply", cdir, '--force',
                     '--set-var', 'run_id={}'.format(self.run_string),
-                    '--set-var', 'tfstate_link=components/vpc_tfstate:lol'
+                    '--set-var', 'tfstate_link=vpc_tfstate:lol', *self.project_args
                     ])
             assert False
         except ComponentException as e:
