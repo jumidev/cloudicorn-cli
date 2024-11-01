@@ -162,13 +162,22 @@ def main(argv=[]):
     
     if not project.check_project_dir():
         try:
-            cdir = args.command[2]
-            folder, component_reldir = project.find_project_root(cdir)
-            project.wdir=folder
-            # update cdir to point to component relative to newly found
-            # project root
-            args.command[2] = component_reldir
-            cdir = component_reldir
+            try:
+                # component provided
+                cdir = args.command[2]
+                folder, component_reldir = project.find_project_root(cdir)
+                project.wdir=folder
+                # update cdir to point to component relative to newly found
+                # project root
+                args.command[2] = component_reldir
+                cdir = component_reldir
+
+            except IndexError:
+                # no component provided
+                folder, component_reldir = project.find_project_root()
+                project.wdir=folder
+
+           
         except:
             raise ProjectException("{} does not appear to be a cloudicorn project".format(project.project_root))
 

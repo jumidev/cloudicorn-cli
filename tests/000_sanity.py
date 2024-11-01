@@ -6,7 +6,7 @@ import yaml
 import cloudicorn, cloudicorn.core
 from cloudicorn.core import hcldump, get_random_string, Project, ProjectException
 import hcl
-
+import os
 
 class TestSanity(unittest.TestCase):
 
@@ -132,7 +132,7 @@ class TestSanity(unittest.TestCase):
         except ProjectException:
             assert True
 
-    def test_find_project_root(self):
+    def test_find_project_root_from_component(self):
         project = Project(git_filtered=False)
         assert not project.check_project_dir()
         cdir = "mock/withvars"
@@ -143,6 +143,32 @@ class TestSanity(unittest.TestCase):
 
         assert component_reldir == "withvars"
         assert project.check_project_dir()
+
+    def test_find_project_root_without_component(self):
+
+        for pdir in ["mock2/dir1", "mock2/dir1/dir2" , "mock2/dir1/dir2/dir3"]:
+
+            project = Project(git_filtered=False, wdir=pdir)
+            assert not project.check_project_dir()
+            folder, reldir = project.find_project_root()
+
+            project.wdir=folder
+
+            assert project.check_project_dir()
+
+
+    def test_cascade_vars(self):
+
+        for cdir in ["dir1", "dir1/dir2" , "dir1/dir2/dir3"]:
+
+            project = Project(git_filtered=False, wdir="mock2")
+            project.set_component_dir(cdir)
+            project.parse_component()
+            assert project.vars["dir"] == os.path.basename(cdir)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

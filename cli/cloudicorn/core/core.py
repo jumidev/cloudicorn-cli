@@ -243,7 +243,7 @@ def runshow(cmd, env=os.environ, cwd='.', stdout = sys.stdout, stderr = sys.stde
     return exitcode
 
 
-def flatwalk_up(haystack, needle):
+def flatwalk_up(haystack, needle, bottom_up=True):
     spl = needle.split("/")
     needle_parts = [spl.pop(0)]
     for s in spl:
@@ -251,6 +251,10 @@ def flatwalk_up(haystack, needle):
         needle_parts.append(add)
 
     needle_parts.insert(0, "")
+
+    if not bottom_up:
+        # top down
+        needle_parts = sorted(needle_parts, reverse=True)
 
     for n in needle_parts:
         l = os.listdir(os.path.join(haystack, n))
@@ -510,11 +514,27 @@ class Project():
         return False
     
     # given a component path, walk up filesystem looking for project.yml
-    def find_project_root(self, component):
-        for (folder, fn) in flatwalk_up(self.project_root, component):
-            if fn == self.conf_marker:
-                apath = os.path.abspath(folder)                
-                return apath, os.path.relpath(component, apath)
+    def find_project_root(self, component=None):
+        haystack = self.project_root
+        
+        if component == None:
+            haystack = "/"
+            component = self.project_root
+
+        d = os.path.join(haystack, component)
+        if os.path.isdir(d):
+            # called from outside of project
+            for (folder, fn) in flatwalk_up(haystack, component, False):
+                if fn == self.conf_marker:
+                    apath = os.path.abspath(folder)
+                    relpath = os.path.relpath(component, apath)
+                    return apath, relpath
+        else:
+            # called from subdir of project
+            apath, relpath = self.find_project_root()
+            d = os.path.join(apath, component)
+            if os.path.isdir(d):
+                return apath, component
 
         raise ProjectException("Could not find project root given component path {}".format(component))
     
