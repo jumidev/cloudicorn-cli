@@ -65,6 +65,8 @@ def main(argv=[]):
                         help='optional remote state key to return')
     parser.add_argument('--set-var', action='append', nargs='+',
                         help='optional variable to override (usage: --set-var KEY=VALUE)')
+    parser.add_argument('--python-wdir', default=None, help=argparse.SUPPRESS)
+        
 
     parser.add_argument('--tf-bin-path', default=None,
                         help='specify path to {}'.format(backend_bin_name))
@@ -116,6 +118,10 @@ def main(argv=[]):
 
     tf_path = args.tf_bin_path
 
+    if args.python_wdir != None:
+        # used for testing
+        os.chdir(args.python_wdir)
+
     if "TERRAFORM_BIN" in os.environ:
         tf_path = os.getenv("TERRAFORM_BIN")
 
@@ -157,16 +163,23 @@ def main(argv=[]):
             k, v = set_var[0].split("=", 1)
             project_vars[k] = v
 
-    project = Project(git_filtered=git_filtered,
-                      project_vars=project_vars, wdir=args.project_dir)
+    project = Project(git_filtered=git_filtered, project_vars=project_vars, wdir=args.project_dir)
     
+    # incorrect project dir specified in args
+    if args.project_dir != None and not project.check_project_dir():
+        raise ProjectException("{} is not a cloudicorn project".format(args.project_dir))
+
     if not project.check_project_dir():
+        # project-dir not explicitly specified in args
         try:
             try:
                 # component provided
                 cdir = args.command[2]
                 folder, component_reldir = project.find_project_root(cdir)
+
+                # found project dir, set it
                 project.wdir=folder
+
                 # update cdir to point to component relative to newly found
                 # project root
                 args.command[2] = component_reldir
@@ -176,8 +189,7 @@ def main(argv=[]):
                 # no component provided
                 folder, component_reldir = project.find_project_root()
                 project.wdir=folder
-
-           
+          
         except:
             raise ProjectException("{} does not appear to be a cloudicorn project".format(project.project_root))
 
@@ -240,9 +252,18 @@ def main(argv=[]):
 
         try:
             cdir = args.command[2]
-        except:
+        except IndexError:
             log("OOPS, no component specified, try one of these (bundles are <u><b>bold underlined</b>):")
-            project.example_commands(command)
+
+            for which, component, match in project.get_components():
+                if match:
+                    s = "{} {} {}".format(PACKAGE, command, component)
+                    if which == "bundle":
+                        s = "{} {} <u><b>{}</u>".format(PACKAGE,
+                                                        command, component)
+                    log(s)
+            log("")
+            
             return (100)
 
         if not os.path.isdir(os.path.join(project.wdir, cdir)):

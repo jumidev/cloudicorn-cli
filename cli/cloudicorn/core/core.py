@@ -551,7 +551,13 @@ class Project():
         self.tf_dir = dir
 
     def set_component_dir(self, dir):
+        
         self.component_dir = dir
+        
+        if os.path.abspath(os.getcwd()).startswith(self.project_root):
+            # cwd is a subdir of project, prepend relative path
+            relpath = os.path.relpath(os.path.abspath(os.getcwd()),  self.project_root)
+            self.component_dir = os.path.join(relpath, dir)
 
         cdir_slug = dir.replace('/', '_')
         tf_wdir_p = get_cloudicorn_cachedir(self.project_root+cdir_slug)
