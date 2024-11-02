@@ -175,15 +175,28 @@ def main(argv=[]):
             try:
                 # component provided
                 cdir = args.command[2]
-                folder, component_reldir = project.find_project_root(cdir)
+                try:
+                    folder, component_reldir = project.find_project_root(cdir)
 
-                # found project dir, set it
-                project.wdir=folder
+                    # found project dir, set it
+                    project.wdir=folder
 
-                # update cdir to point to component relative to newly found
-                # project root
-                args.command[2] = component_reldir
-                cdir = component_reldir
+                    # update cdir to point to component relative to newly found
+                    # project root
+                    args.command[2] = component_reldir
+                    cdir = component_reldir
+
+                except ProjectException:
+                    folder, reldir = project.find_project_root()
+                    if os.path.abspath(os.getcwd()).startswith(project.project_root):
+                        # cwd is a subdir of project
+                        project.wdir=folder
+                        cdir2 = os.path.join(reldir, cdir)
+                        args.command[2] = cdir2
+                        cdir = cdir2
+
+                    else:
+                        raise
 
             except IndexError:
                 # no component provided
@@ -253,11 +266,18 @@ def main(argv=[]):
         try:
             cdir = args.command[2]
         except IndexError:
+            # provide list of components relative to cwd
             log("OOPS, no component specified, try one of these (bundles are <u><b>bold underlined</b>):")
 
+            prefix = ""
+            if os.path.abspath(os.getcwd()) != project.project_root:
+                if os.path.abspath(os.getcwd()).startswith(project.project_root):
+                    # cwd is a subdir of project
+                    prefix = os.path.relpath(os.path.abspath(os.getcwd()), project.project_root)+"/"
+
             for which, component, match in project.get_components():
-                if match:
-                    s = "{} {} {}".format(PACKAGE, command, component)
+                if match and component.startswith(prefix):
+                    s = "{} {} {}".format(PACKAGE, command, component[len(prefix):])
                     if which == "bundle":
                         s = "{} {} <u><b>{}</u>".format(PACKAGE,
                                                         command, component)
