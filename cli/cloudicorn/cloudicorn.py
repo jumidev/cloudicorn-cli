@@ -11,6 +11,7 @@ from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean
 from cloudicorn.core import Project, ProjectException
 from cloudicorn.tfwrapper import WrapTerraform as WrapTf
 from cloudicorn.tfwrapper import TFException
+import importlib.metadata as im
 
 if check_cloud_extension("opentofu"):
     from cloudicorn_opentofu import OpentofuUtils as Utils 
@@ -73,6 +74,7 @@ def main(argv=[]):
     parser.add_argument('--tfstate-store-encryption-passphrase', default=None,
                         help='specify encryption / decryption passphrase for tfstate store')
     # booleans
+    parser.add_argument('--version', action='store_true', help='display cloudicorn version')
     parser.add_argument('--clean', dest='clean',
                         action='store_true', help='clear all cache')
     parser.add_argument('--force', '--yes', '-t', '-f', action='store_true',
@@ -103,10 +105,21 @@ def main(argv=[]):
                         help='display debug messages')
 
     args = parser.parse_args(args=argv)
-
     # TODO add project specific args to project.yml
 
     global LOG
+
+    if args.version:
+        pypkg = 'cloudicorn-cli'
+
+        build_date = "UNKNOWN"
+        for k in im.metadata(pypkg)["Keywords"].split(" "):
+            if k.startswith("build_date"):
+                a,build_date = k.split(":")
+
+        log("{} version {}".format(PACKAGE, im.version(pypkg)))
+        log("build date: {}".format(build_date))
+        return 0
 
     if args.quiet or args.json:
         LOG = False

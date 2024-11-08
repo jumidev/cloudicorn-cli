@@ -5,6 +5,7 @@
 import setuptools
 import re, os
 from setuptools import setup, find_packages
+import datetime
 
 url = 'https://github.com/jumidev/cloudicorn-cli'
 
@@ -28,6 +29,8 @@ with open("requirements.txt", "r") as fh:
 
 release_version=os.getenv("CLOUDICORN_RELEASE", "999.dev")
 
+build_date = datetime.date.today().strftime('%Y-%m-%d')
+
 setup(name='cloudicorn-cli',
     version=release_version,
     description='Taking Infrastructure As Code to the next level',
@@ -35,6 +38,7 @@ setup(name='cloudicorn-cli',
     long_description_content_type="text/markdown",
     url=url,
     author='krezreb',
+    keywords="build_date:{}".format(build_date),
     author_email='josephbeeson@gmail.com',
     license='MIT',
     packages=find_packages(),
