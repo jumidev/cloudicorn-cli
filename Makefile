@@ -4,14 +4,18 @@ install:
 	cd cli && make install
 
 install_aws: install
-	cd extensions/aws && python3 setup.py install --user &&	rm -rf build dist *egg-info
+	pip3 uninstall cloudicorn-aws --break-system-packages -y 
+	cd extensions/aws && python3 setup.py install --force --user &&	rm -rf build dist *egg-info
 
 install_azurerm: install
-	cd extensions/azurerm && python3 setup.py install --user &&	rm -rf build dist *egg-info
+	pip3 uninstall cloudicorn-azurerm --break-system-packages -y 
+	cd extensions/azurerm && python3 setup.py install --force --user &&	rm -rf build dist *egg-info
 
 install_opentofu: install
-	cd extensions/opentofu && python3 setup.py install --user &&	rm -rf build dist *egg-info
+	pip3 uninstall cloudicorn-opentofu --break-system-packages -y 
+	cd extensions/opentofu && python3 setup.py install --force --user &&	rm -rf build dist *egg-info
 
+install_all: install_opentofu install_azurerm install_aws
 
 build_test_docker:
 	docker build . -f Dockerfile-tests -t test-cloudicorn
