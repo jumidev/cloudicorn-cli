@@ -12,9 +12,6 @@ from azure.mgmt.storage import StorageManagementClient
 from azure.mgmt.resource import ResourceManagementClient
 from azure.core.exceptions import ResourceNotFoundError
 
-def exists():
-    pass
-
 class AzureUtils():
 
     def __init__(self) -> None:

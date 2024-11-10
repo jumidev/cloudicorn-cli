@@ -19,7 +19,7 @@ import string
 import random
 from pathlib import Path
 from copy import deepcopy
-
+import pkgutil
 from base64 import b64encode, b64decode
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -56,34 +56,19 @@ def download_progress(url, filename, w=None):
 
     print("")
     
+def list_cloud_extensions():
+    for x in ("aws", "azurerm", "opentofu", "gcp"):
+        exists = check_cloud_extension(x)
+        yield x, exists
+
 def check_cloud_extension(which):
-    if which == "aws":
-        try:
-            from cloudicorn_aws import exists
-            return True
-        except ImportError:
-            return False
 
-    if which == "azurerm":
-        try:
-            from cloudicorn_azurerm import exists
-            return True
-        except ImportError:
-            return False
+    try:
+        pkgutil.resolve_name("cloudicorn_{}".format(which))
+        return True
+    except:
+        return False
 
-    if which == "gcp":
-        try:
-            from cloudicorn_gcp import exists
-            return True
-        except ImportError:
-            return False
-        
-    if which == "opentofu":
-        try:
-            from cloudicorn_opentofu import exists
-            return True
-        except ImportError:
-            return False
         
 def get_cloudicorn_cachedir(salt, cleanup=True):
     current_date_slug = datetime.today().strftime('%Y-%m-%d')

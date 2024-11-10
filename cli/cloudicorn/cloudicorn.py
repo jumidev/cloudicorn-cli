@@ -7,7 +7,7 @@ import sys
 import argparse
 from pyfiglet import Figlet
 import git
-from cloudicorn.core import run, runshow, log, debug, flatwalk, git_check, clean_cache, hcldump, check_cloud_extension
+from cloudicorn.core import runshow, log, flatwalk, git_check, hcldump, check_cloud_extension, list_cloud_extensions
 from cloudicorn.core import Project, ProjectException
 from cloudicorn.tfwrapper import WrapTerraform as WrapTf
 from cloudicorn.tfwrapper import TFException
@@ -109,18 +109,6 @@ def main(argv=[]):
 
     global LOG
 
-    if args.version:
-        pypkg = 'cloudicorn-cli'
-
-        build_date = "UNKNOWN"
-        for k in im.metadata(pypkg)["Keywords"].split(" "):
-            if k.startswith("build_date"):
-                a,build_date = k.split(":")
-
-        log("{} version {}".format(PACKAGE, im.version(pypkg)))
-        log("build date: {}".format(build_date))
-        return 0
-
     if args.quiet or args.json:
         LOG = False
 
@@ -142,6 +130,7 @@ def main(argv=[]):
         tf_path = os.getenv("OPENTOFU_BIN")
 
 
+   
     # (out, err, exitcode) = run("which terraform")
     # terraform_path = None
     # if exitcode == 0:
@@ -150,6 +139,28 @@ def main(argv=[]):
     u = Utils(tf_path=tf_path)
     u.setup(args)
 
+    if args.version:
+        pypkg = 'cloudicorn-cli'
+
+        build_date = "UNKNOWN"
+        for k in im.metadata(pypkg)["Keywords"].split(" "):
+            if k.startswith("build_date"):
+                a,build_date = k.split(":")
+
+        log("{} version {}".format(PACKAGE, im.version(pypkg)))
+        log("build date: {}".format(build_date))
+        ext = []
+        for x,i in list_cloud_extensions():
+            if i:
+                
+                ext.append(x+ " v"+im.version("cloudicorn-{}".format(x)))
+
+        if len(ext) > 0:
+            log("Extensions installed: {}".format(", ".join(ext)))
+
+        runshow(u.tf_path+" version")
+        return 0
+    
     if args.setup_shell or args.check_setup or args.setup:
         return 0
 

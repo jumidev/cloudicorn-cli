@@ -10,9 +10,6 @@ import boto3
 from botocore.exceptions import ClientError
 import botocore
 
-def exists():
-    pass
-
 class TfStateStoreAwsS3(TfStateStore):
     s3_client = boto3.client('s3')
 

@@ -19,9 +19,6 @@ from prompt_toolkit.formatted_text import HTML
 class WrapOpentofu(TFWrapper):
     pass
 
-def exists():
-    pass
-
 def get_release(v):
     from sys import platform
     p = plat.machine()
