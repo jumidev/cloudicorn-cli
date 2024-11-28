@@ -32,7 +32,6 @@ def main(argv=[]):
     export CLOUDICORN_DEBUG=y                   # activates debug messages
     export CLOUDICORN_APPROVE=y                 # activates --yes
     export CLOUDICORN_GIT_CHECK=y               # activates --git-check
-    export CLOUDICORN_NO_GIT_CHECK=y            # activates --no-git-check
     export CLOUDICORN_GIT_FILTER                # when displaying components, only show those which have uncomitted git files
     export CLOUDICORN_TFSTATE_STORE_ENCRYPTION_PASSPHRASE #if set, passphrase to encrypt and decrypt remote state files at rest
     """
@@ -83,8 +82,6 @@ def main(argv=[]):
                         help="dry run, don't actually do anything")
     parser.add_argument('--allow-no-tfstate-store', action='store_true',
                         help="allow components to be run without a tfstate_store block")
-    parser.add_argument('--no-check-git', action='store_true',
-                        help='Explicitly skip git repository checks')
     parser.add_argument('--check-git', action='store_true',
                         help='Explicitly enable git repository checks')
     parser.add_argument('--git-filter', action='store_true',
@@ -252,16 +249,10 @@ def main(argv=[]):
         print(u.tf_path)
         return 0
 
-    CHECK_GIT = True
-    if command[0:5] in ('apply', 'destr'):
-        # [0:5] to also include "*-all" command variants
-        CHECK_GIT = True
+    CHECK_GIT = False
 
     if args.check_git or os.getenv('CLOUDICORN_GIT_CHECK', 'n')[0].lower() in ['y', 't', '1']:
         CHECK_GIT = True
-
-    if args.no_check_git or os.getenv('CLOUDICORN_NO_GIT_CHECK', 'n')[0].lower() in ['y', 't', '1']:
-        CHECK_GIT = False
 
     # check git
     if CHECK_GIT:
