@@ -1283,11 +1283,12 @@ class ComponentSourcePath(ComponentSource):
         if "path" not in self.args:
             raise ComponentSourceException("path not present in source block")
 
-        if not os.path.isdir(self.args["path"]):
+        xp = os.path.expanduser(self.args["path"])
+        if not os.path.isdir(xp):
             raise ComponentSourceException(
-                "No such directory: {}".format(self.args["path"]))
+                "No such directory: {}".format(xp))
 
-        shutil.copytree(self.args["path"], self.targetdir, dirs_exist_ok=True)
+        shutil.copytree(xp, self.targetdir, dirs_exist_ok=True)
 
 
 class ComponentSourceGit(ComponentSource):
