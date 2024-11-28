@@ -33,9 +33,25 @@ https://code.visualstudio.com/docs/python/debugging#_command-line-debugging
 
 # running tests
 
+By default tests will be run against terraform.  To install terraform, run
+
+```
+cloudicorn_setup --install
+```
+
+To run the tests against opentofu
+
 ```
 cd tests
-make test # runs all tests, internet connection required
+make enable_opentofu
+cloudicorn_setup --install
+```
+
+Once opentofu or terraform is installed, tests can be run
+
+```
+cd tests
+make test # runs all tests, internet connection required, no cloud credentials required
 ```
 
 To run specific tests:
