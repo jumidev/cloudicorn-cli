@@ -371,6 +371,7 @@ def main(argv=[]):
                 components.reverse()
 
             # run per component
+            retcode = None
             for component in components:
                 project.set_component_dir(component)
                 retcode = handle_component(project, command, args, wt, u, tfstate_store_encryption_passphrases, False)
