@@ -1,7 +1,7 @@
 # TODO
 
 - remove git check by default
-- fix opentofu plugins dir
+- fix opentofurc plugins dir
 - source path var, expand home user path ~
 - add projet level options
 - add .cloudicornrc with home dir options

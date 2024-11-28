@@ -220,9 +220,9 @@ class OpentofuUtils(Utils):
                     title='No opentofu plugin cache',
                     text='No opentofu plugin cache found in ~/.tofurc.  Caching plugins locally saves bandwidth and reduces init time.  Enable caching?').run()
                 if ans:
-                    plugin_cache_dir = "~/.tofu.d/plugin-cache"
+                    plugin_cache_dir = os.path.expanduser("~/.tofu.d/plugin-cache")
                     lines.append(
-                        'plugin_cache_dir = {}'.format(plugin_cache_dir))
+                        'plugin_cache_dir = "{}"'.format(plugin_cache_dir))
 
                     with open(rcfile, "w") as fh:
                         for l in lines:
