@@ -32,6 +32,23 @@ make install_azurerm         # installs Azure Requirements
 make install_opentofu        # Use opentofu instead of terraform
 ```
 
+If you are on python 3.11 or newer you'll get an error message when you  `make install_`
+
+```
+error: externally-managed-environment
+
+× This environment is externally managed
+╰─> To install Python packages system-wide, try apt install
+    python3-xyz, where xyz is the package you are trying to
+    install.
+```
+
+To fix this:
+
+`python3 -m pip config set global.break-system-packages true`
+
+
+
 ### Initial setup
 
 ```

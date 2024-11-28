@@ -210,7 +210,7 @@ class Utils():
             missing, outdated = self.check_setup()
 
             if missing:
-                log("CHECK SETUP: MISSING {}".format(", ".join(missing)))
+                log("CHECK SETUP: terraform not installed")
 
             elif outdated:
                 log("CHECK SETUP: UPDATES AVAILABLE")
