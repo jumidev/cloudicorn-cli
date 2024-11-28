@@ -4,15 +4,15 @@ install:
 	cd cli && make install
 
 install_aws: install
-	pip3 uninstall cloudicorn-aws --break-system-packages -y 
+	pip3 uninstall cloudicorn-aws -y 
 	cd extensions/aws && python3 setup.py install --force --user &&	rm -rf build dist *egg-info
 
 install_azurerm: install
-	pip3 uninstall cloudicorn-azurerm --break-system-packages -y 
+	pip3 uninstall cloudicorn-azurerm -y 
 	cd extensions/azurerm && python3 setup.py install --force --user &&	rm -rf build dist *egg-info
 
 install_opentofu: install
-	pip3 uninstall cloudicorn-opentofu --break-system-packages -y 
+	pip3 uninstall cloudicorn-opentofu -y 
 	cd extensions/opentofu && python3 setup.py install --force --user &&	rm -rf build dist *egg-info
 
 install_all: install_opentofu install_azurerm install_aws

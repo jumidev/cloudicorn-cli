@@ -5,5 +5,4 @@ install: uninstall
 	rm -rf build dist *egg-info
 
 uninstall:
-	pip3 uninstall cloudicorn-cli -y --break-system-packages
-
+	pip3 uninstall cloudicorn-cli -y
