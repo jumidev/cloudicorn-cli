@@ -689,30 +689,40 @@ class Project():
 
         reordered_components = []
         for i in order:
-            for c in components:
-                if c in reordered_components:
-                    continue
-                if self.component_type(c) == "component":
-                    relpath = c[len(wdir)+1:]
+            if "*" not in i:
+                # look for exact match
+                x = os.path.join(wdir, i)
+                if x in components:
+                    reordered_components.append(x)
+                else:
+                    raise ComponentException(f"Batch Error: no such component: {x} (recheck bundle.yml)")
 
-                    match = False
-                    if i == relpath:
-                        match = True
+            else:
+                for c in components:
+                    if c in reordered_components:
+                        continue
+                    if self.component_type(c) == "component":
+                        relpath = c[len(wdir)+1:]
 
-                    # start and end wildcards
-                    elif i[-1] == "*" and i[0] == "*":
-                        if i[1:-1] in relpath:
+                        match = False
+                        if i == relpath:
                             match = True
 
-                    elif i[-1] == "*":
-                        if relpath.startswith(i[0:-1]):
-                            match = True
-                    elif i[0] == "*":
-                        if relpath.endswith(i[1:]):
-                            match = True
+                        # start and end wildcards
+                        elif i[-1] == "*" and i[0] == "*":
+                            if i[1:-1] in relpath:
+                                match = True
 
-                    if match:
-                        reordered_components.append(c)
+                        elif i[-1] == "*":
+                            if relpath.startswith(i[0:-1]):
+                                match = True
+                        elif i[0] == "*":
+                            if relpath.endswith(i[1:]):
+                                match = True
+
+                        if match:
+                            reordered_components.append(c)
+                        
 
         return reordered_components
     
@@ -977,8 +987,11 @@ class Project():
                     raise ComponentException(
                         "Missing terraform.tfstate file for component_inputs key {} = \"{}\"".format(k, v))
 
-                with open(tfstate_file, 'r') as fh:
-                    tfstate = json.load(fh)
+                try:
+                    with open(tfstate_file, 'r') as fh:
+                        tfstate = json.load(fh)
+                except:
+                    raise ComponentException("No tfstate for component: {} (have you applied this component?)".format(v))
 
                 try:
 

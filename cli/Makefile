@@ -6,3 +6,6 @@ install: uninstall
 
 uninstall:
 	pip3 uninstall cloudicorn-cli -y
+
+pydebug_cmd:
+	@echo python3 -m debugpy --listen 5678  --wait-for-client -m cloudicorn.cloudicorn
